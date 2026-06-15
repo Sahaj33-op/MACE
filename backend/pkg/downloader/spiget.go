@@ -9,7 +9,6 @@ import (
 
 const spigetAPIBase = "https://api.spiget.org/v2"
 
-// --- Spiget API response types ---
 
 type spigetResource struct {
 	ID         int64          `json:"id"`
@@ -39,9 +38,7 @@ type spigetFile struct {
 	URL      string `json:"url"`
 }
 
-// --- Exported result types ---
 
-// SpigetSearchResult is the exported format returned to the IPC layer.
 type SpigetSearchResult struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
@@ -68,7 +65,6 @@ func SearchSpiget(query string, limit int) ([]SpigetSearchResult, error) {
 	if query != "" {
 		reqURL = fmt.Sprintf("%s/search/resources/%s?%s", spigetAPIBase, url.PathEscape(query), params.Encode())
 	} else {
-		// Browse popular — use the resources endpoint sorted by downloads
 		reqURL = fmt.Sprintf("%s/resources?%s", spigetAPIBase, params.Encode())
 	}
 
@@ -98,8 +94,7 @@ func SearchSpiget(query string, limit int) ([]SpigetSearchResult, error) {
 	for _, r := range resources {
 		iconURL := ""
 		if r.Icon.URL != "" {
-			// Spiget icon URLs are relative; prefix with base
-			iconURL = "https://www.spigotmc.org/" + r.Icon.URL
+		iconURL = "https://www.spigotmc.org/" + r.Icon.URL
 		}
 
 		results = append(results, SpigetSearchResult{
@@ -125,7 +120,6 @@ func BrowseSpiget(limit int) ([]SpigetSearchResult, error) {
 // ResolveSpigetDownloadURL returns the download URL for a Spiget resource.
 // Returns an error if the resource is premium or external (can't be downloaded directly).
 func ResolveSpigetDownloadURL(resourceID int64) (string, string, error) {
-	// First get resource details to check if it's downloadable
 	detailURL := fmt.Sprintf("%s/resources/%d", spigetAPIBase, resourceID)
 
 	req, err := http.NewRequest("GET", detailURL, nil)
@@ -157,7 +151,6 @@ func ResolveSpigetDownloadURL(resourceID int64) (string, string, error) {
 		return "", "", fmt.Errorf("this resource uses an external download — visit SpigotMC.org to download manually")
 	}
 
-	// The download URL redirects to the actual file
 	downloadURL := fmt.Sprintf("%s/resources/%d/download", spigetAPIBase, resourceID)
 	fileName := fmt.Sprintf("%s.jar", sanitizeFileName(resource.Name))
 

@@ -106,7 +106,6 @@ func (a *App) RestartServer(id string) error {
 		return err
 	}
 
-	// Poll launcher status for up to 10 seconds or until it stops running
 	for i := 0; i < 20; i++ {
 		if !launcher.IsRunning(id) {
 			break
@@ -171,7 +170,6 @@ func (a *App) SubscribeConsole(id string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// If already subscribed, do nothing
 	if _, ok := a.doneChannels[id]; ok {
 		return
 	}
@@ -179,7 +177,6 @@ func (a *App) SubscribeConsole(id string) {
 	done := make(chan struct{})
 	a.doneChannels[id] = done
 
-	// Fetch existing logs first
 	logs, _ := servermanager.GetConsoleLogs(id)
 	for _, line := range logs {
 		runtime.EventsEmit(a.ctx, "console-log-"+id, line)
@@ -220,7 +217,6 @@ func (a *App) GetActivePlayers(id string) ([]string, error) {
 		return []string{}, nil
 	}
 	players := launcher.GetActivePlayers(id)
-	// Fallback: if the server is running but the player list is empty, seed from console buffer
 	if len(players) == 0 {
 		logs, _ := servermanager.GetConsoleLogs(id)
 		launcher.SeedActivePlayersFromLogs(id, logs)
@@ -313,7 +309,6 @@ func (a *App) InstallModrinthMod(serverID, projectID, loader, gameVersion, conte
 		return nil, err
 	}
 
-	// Find the primary file
 	var downloadURL, fileName string
 	for _, f := range version.Files {
 		if f.Primary {
@@ -367,7 +362,6 @@ func (a *App) InstallCurseForgeFile(serverID string, modID int64, loader, gameVe
 	downloadURL := file.DownloadURL
 	fileName := file.FileName
 
-	// If downloadUrl is missing, fetch it via the download-url endpoint
 	if downloadURL == "" {
 		downloadURL, fileName, err = downloader.GetCurseForgeDownloadURL(settings.CurseForgeAPIKey, modID, file.ID)
 		if err != nil {

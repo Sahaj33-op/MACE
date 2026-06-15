@@ -19,7 +19,6 @@ var (
 
 // settingsPath returns the path to the MACE settings file.
 func settingsPath() string {
-	// Store alongside the servers directory
 	return filepath.Join("settings.json")
 }
 
@@ -38,7 +37,6 @@ func LoadSettings() (*AppSettings, error) {
 
 	data, err := os.ReadFile(settingsPath())
 	if err != nil {
-		// File doesn't exist yet — return defaults
 		cachedSettings = &AppSettings{}
 		return &AppSettings{}, nil
 	}

@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-// Modrinth API structures and helpers
 
-// ModrinthVersion represents a version object returned by the Modrinth API.
 type ModrinthVersion struct {
 	ID            string   `json:"id"`
 	ProjectID     string   `json:"project_id"`
@@ -47,7 +45,6 @@ func FilterModrinthVersion(version ModrinthVersion, targetLoader string, targetG
 	return false
 }
 
-// CurseForge API structures and helpers
 
 type CurseForgeModLoaderType int
 

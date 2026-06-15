@@ -13,6 +13,7 @@ declare global {
             type: ServerType;
             memoryMB: number;
             backupPath?: string;
+            agreeEula: boolean;
           }): Promise<ServerInstance>;
           BrowseForServerDir(): Promise<string>;
           ImportServer(payload: { path: string; name: string }): Promise<ServerInstance>;
@@ -94,6 +95,7 @@ export async function createServer(payload: {
   type: ServerType;
   memoryMB: number;
   backupPath?: string;
+  agreeEula: boolean;
 }): Promise<ServerInstance> {
   return window.go.main.App.CreateServer(payload);
 }

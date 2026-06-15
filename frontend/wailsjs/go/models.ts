@@ -151,6 +151,7 @@ export namespace servermanager {
 	    type: string;
 	    memoryMB: number;
 	    backupPath: string;
+	    agreeEula: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new CreateServerPayload(source);
@@ -163,6 +164,7 @@ export namespace servermanager {
 	        this.type = source["type"];
 	        this.memoryMB = source["memoryMB"];
 	        this.backupPath = source["backupPath"];
+	        this.agreeEula = source["agreeEula"];
 	    }
 	}
 	export class ImportServerPayload {

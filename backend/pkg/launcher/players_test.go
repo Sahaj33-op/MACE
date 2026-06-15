@@ -12,7 +12,6 @@ func TestParseLogLineForPlayers(t *testing.T) {
 	serverID := "test-server-1"
 	ClearActivePlayers(serverID)
 
-	// Test Join Standard
 	ParseLogLineForPlayers(serverID, "[22:52:29] [Server thread/INFO]: temitope joined the game")
 	players := GetActivePlayers(serverID)
 	expected := []string{"temitope"}
@@ -20,15 +19,13 @@ func TestParseLogLineForPlayers(t *testing.T) {
 		t.Errorf("expected players %v, got %v", expected, players)
 	}
 
-	// Test Join Bedrock prefix
 	ParseLogLineForPlayers(serverID, "[22:52:30] [Server thread/INFO]: .bedrock_player joined the game")
 	players = GetActivePlayers(serverID)
-	// Output order might vary since it's a map. We check lengths and contents.
+
 	if len(players) != 2 {
 		t.Errorf("expected 2 players, got %d: %v", len(players), players)
 	}
 
-	// Test Leave Standard
 	ParseLogLineForPlayers(serverID, "[22:53:00] [Server thread/INFO]: temitope left the game")
 	players = GetActivePlayers(serverID)
 	expected = []string{".bedrock_player"}
@@ -36,7 +33,6 @@ func TestParseLogLineForPlayers(t *testing.T) {
 		t.Errorf("expected players %v after leave, got %v", expected, players)
 	}
 
-	// Test Leave Bedrock
 	ParseLogLineForPlayers(serverID, "[22:53:01] [Server thread/INFO]: .bedrock_player left the game")
 	players = GetActivePlayers(serverID)
 	if len(players) != 0 {
@@ -68,7 +64,6 @@ func TestGetPlayerRoles(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Write mock ops.json
 	opsData := []OpPlayer{
 		{Name: "op1", Level: 4},
 		{Name: "op2", Level: 2},
@@ -76,7 +71,6 @@ func TestGetPlayerRoles(t *testing.T) {
 	opsBytes, _ := json.Marshal(opsData)
 	os.WriteFile(filepath.Join(tempDir, "ops.json"), opsBytes, 0644)
 
-	// Write mock whitelist.json
 	wlData := []WhitelistPlayer{
 		{Name: "wl1"},
 		{Name: "wl2"},

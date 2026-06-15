@@ -19,14 +19,12 @@ type JavaInstall struct {
 func FindJavaInstallations() []JavaInstall {
 	paths := make(map[string]bool)
 
-	// 1. Look in PATH
 	if p, err := exec.LookPath("java"); err == nil {
 		if abs, err := filepath.Abs(p); err == nil {
 			paths[abs] = true
 		}
 	}
 
-	// 2. Scan standard Windows Program Files directories
 	roots := []string{
 		`C:\Program Files\Java`,
 		`C:\Program Files (x86)\Java`,
@@ -64,7 +62,6 @@ func FindJavaInstallations() []JavaInstall {
 		}
 	}
 
-	// If nothing found, return a default fallback
 	if len(installs) == 0 {
 		installs = append(installs, JavaInstall{
 			Path:    "java",
@@ -86,14 +83,12 @@ func GetJavaVersion(javaPath string) string {
 	}
 
 	output := stderr.String()
-	// Matches patterns like `version "21.0.1"` or `version "1.8.0_391"`
 	re := regexp.MustCompile(`version "([^"]+)"`)
 	matches := re.FindStringSubmatch(output)
 	if len(matches) > 1 {
 		return matches[1]
 	}
 
-	// Fallback for some non-standard outputs
 	lines := strings.Split(output, "\n")
 	if len(lines) > 0 {
 		return strings.TrimSpace(lines[0])
@@ -142,7 +137,7 @@ func ParseMajorJavaVersion(versionStr string) int {
 func GetRequiredJavaVersion(mcVersion string) int {
 	parts := strings.Split(mcVersion, ".")
 	if len(parts) < 2 {
-		return 8 // default fallback
+		return 8
 	}
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {

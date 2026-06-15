@@ -1,7 +1,6 @@
 package downloader
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -79,7 +78,6 @@ func SearchCurseForge(apiKey, query string, classID int, loader, gameVersion str
 	if query != "" {
 		params.Set("searchFilter", query)
 	} else {
-		// Sort by popularity (Total Downloads) when browsing without a query
 		params.Set("sortField", "2")
 		params.Set("sortOrder", "desc")
 	}
@@ -230,7 +228,6 @@ func GetCurseForgeDownloadURL(apiKey string, modID, fileID int64) (string, strin
 		return "", "", err
 	}
 
-	// Extract filename from URL
 	parts := strings.Split(result.Data, "/")
 	fileName := parts[len(parts)-1]
 
@@ -265,5 +262,3 @@ func ValidateCurseForgeKey(apiKey string) error {
 	return nil
 }
 
-// Ensure bytes import doesn't cause unused error
-var _ = bytes.NewBuffer

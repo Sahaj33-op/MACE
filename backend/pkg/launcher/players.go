@@ -12,7 +12,6 @@ var (
 	activePlayers   = make(map[string]map[string]bool)
 	activePlayersMu sync.RWMutex
 
-	// Match player names that can contain bedrock prefixes (. or *) and standard chars
 	joinRegex  = regexp.MustCompile(`(?:\s|^)([.*a-zA-Z0-9_]{3,20})\s+joined\s+the\s+game(?:\s|$)`)
 	leaveRegex = regexp.MustCompile(`(?:\s|^)([.*a-zA-Z0-9_]{3,20})\s+left\s+the\s+game(?:\s|$)`)
 
@@ -146,7 +145,6 @@ func GetPlayerRoles(serverDir string) (*PlayerRoles, error) {
 		Whitelisted: []string{},
 	}
 
-	// 1. Read ops.json
 	opsPath := filepath.Join(serverDir, "ops.json")
 	if _, err := os.Stat(opsPath); err == nil {
 		data, err := os.ReadFile(opsPath)
@@ -162,7 +160,6 @@ func GetPlayerRoles(serverDir string) (*PlayerRoles, error) {
 		}
 	}
 
-	// 2. Read whitelist.json
 	whitelistPath := filepath.Join(serverDir, "whitelist.json")
 	if _, err := os.Stat(whitelistPath); err == nil {
 		data, err := os.ReadFile(whitelistPath)

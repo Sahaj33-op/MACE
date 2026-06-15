@@ -96,7 +96,6 @@ func GetResourceUsage(id string) (*ResourceUsage, error) {
 
 	usage := &ResourceUsage{}
 
-	// Calculate uptime
 	if !startTime.IsZero() {
 		usage.Uptime = int64(time.Since(startTime).Seconds())
 	}
@@ -104,7 +103,6 @@ func GetResourceUsage(id string) (*ResourceUsage, error) {
 	pids := getAllPids(pid)
 
 	if runtime.GOOS == "windows" {
-		// Use WMIC to get process memory for all matching processes
 		var conditions []string
 		for _, p := range pids {
 			conditions = append(conditions, fmt.Sprintf("ProcessId=%d", p))
@@ -121,13 +119,12 @@ func GetResourceUsage(id string) (*ResourceUsage, error) {
 					valStr := strings.TrimPrefix(line, "WorkingSetSize=")
 					valStr = strings.TrimSpace(valStr)
 					if val, err := strconv.ParseFloat(valStr, 64); err == nil {
-						usage.MemoryMB += val / (1024 * 1024) // bytes -> MB
+						usage.MemoryMB += val / (1024 * 1024)
 					}
 				}
 			}
 		}
 
-		// Use wmic for CPU for all matching processes
 		var cpuConditions []string
 		for _, p := range pids {
 			cpuConditions = append(cpuConditions, fmt.Sprintf("IDProcess=%d", p))
@@ -156,7 +153,6 @@ func GetResourceUsage(id string) (*ResourceUsage, error) {
 			}
 		}
 	} else {
-		// Linux/macOS: construct command with multiple PIDs
 		var pidStrings []string
 		for _, p := range pids {
 			pidStrings = append(pidStrings, fmt.Sprintf("%d", p))
@@ -172,7 +168,7 @@ func GetResourceUsage(id string) (*ResourceUsage, error) {
 						usage.CPUPercent += cpu
 					}
 					if rss, err := strconv.ParseFloat(fields[1], 64); err == nil {
-						usage.MemoryMB += rss / 1024 // KB -> MB
+						usage.MemoryMB += rss / 1024
 					}
 				}
 			}

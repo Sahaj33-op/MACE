@@ -8,7 +8,6 @@ import (
 )
 
 func TestBackups(t *testing.T) {
-	// Create "servers" folder in current directory so GetServerRoot() finds it
 	err := os.MkdirAll("servers", 0755)
 	if err != nil {
 		t.Fatalf("failed to create servers dir: %v", err)
@@ -26,7 +25,6 @@ func TestBackups(t *testing.T) {
 		t.Fatalf("failed to create server path: %v", err)
 	}
 
-	// Create world directory and files
 	worldDir := filepath.Join(serverPath, "world")
 	err = os.MkdirAll(filepath.Join(worldDir, "region"), 0755)
 	if err != nil {
@@ -41,7 +39,6 @@ func TestBackups(t *testing.T) {
 		t.Fatalf("failed to write region file: %v", err)
 	}
 
-	// Create config files
 	err = os.WriteFile(filepath.Join(serverPath, "server.properties"), []byte("motd=Test Server"), 0644)
 	if err != nil {
 		t.Fatalf("failed to write server.properties: %v", err)
@@ -51,7 +48,6 @@ func TestBackups(t *testing.T) {
 		t.Fatalf("failed to write whitelist.json: %v", err)
 	}
 
-	// Write metadata.json
 	inst := ServerInstance{
 		ID:       serverId,
 		Name:     "Test Server",
@@ -71,7 +67,6 @@ func TestBackups(t *testing.T) {
 		t.Fatalf("failed to write metadata.json: %v", err)
 	}
 
-	// Test 1: Create Backup (default path)
 	backupItem, err := CreateBackup(serverId)
 	if err != nil {
 		t.Fatalf("CreateBackup failed: %v", err)
@@ -81,7 +76,6 @@ func TestBackups(t *testing.T) {
 		t.Errorf("expected backup file name to be set, got empty")
 	}
 
-	// Test 2: List Backups
 	backups, err := ListBackups(serverId)
 	if err != nil {
 		t.Fatalf("ListBackups failed: %v", err)
@@ -92,7 +86,6 @@ func TestBackups(t *testing.T) {
 		t.Errorf("expected backup file name %q, got %q", backupItem.FileName, backups[0].FileName)
 	}
 
-	// Modify server.properties and world file to test restore
 	err = os.WriteFile(filepath.Join(serverPath, "server.properties"), []byte("motd=Modified Motd"), 0644)
 	if err != nil {
 		t.Fatalf("failed to write modified server.properties: %v", err)
@@ -102,13 +95,11 @@ func TestBackups(t *testing.T) {
 		t.Fatalf("failed to write modified level.dat: %v", err)
 	}
 
-	// Test 3: Restore Backup
 	err = RestoreBackup(serverId, backupItem.FileName)
 	if err != nil {
 		t.Fatalf("RestoreBackup failed: %v", err)
 	}
 
-	// Verify content is restored
 	propContent, err := os.ReadFile(filepath.Join(serverPath, "server.properties"))
 	if err != nil {
 		t.Fatalf("failed to read server.properties after restore: %v", err)
@@ -125,7 +116,6 @@ func TestBackups(t *testing.T) {
 		t.Errorf("expected mock-level-data, got %q", string(levelContent))
 	}
 
-	// Test 4: Custom Backup Path
 	customBackupDir, err := filepath.Abs("custom_backups")
 	if err != nil {
 		t.Fatalf("failed to get absolute path for custom backups: %v", err)
@@ -159,13 +149,11 @@ func TestBackups(t *testing.T) {
 		t.Errorf("expected 1 custom backup, got %d", len(customBackups))
 	}
 
-	// Verify file exists in custom dir
 	customZipPath := filepath.Join(customBackupDir, customBackupItem.FileName)
 	if _, err := os.Stat(customZipPath); os.IsNotExist(err) {
 		t.Errorf("expected backup zip file to exist at %s, but it does not", customZipPath)
 	}
 
-	// Test 5: Delete Backup
 	err = DeleteBackup(serverId, customBackupItem.FileName)
 	if err != nil {
 		t.Fatalf("DeleteBackup failed: %v", err)

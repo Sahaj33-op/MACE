@@ -35,14 +35,14 @@ type ContentItem struct {
 	FileName string `json:"fileName"`
 	Enabled  bool   `json:"enabled"`
 	SizeKB   int64  `json:"sizeKB"`
-	Type     string `json:"type"` // "mod" | "plugin"
+	Type     string `json:"type"`
 }
 
 // ModpackMeta stores information about an applied modpack.
 type ModpackMeta struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
-	Source  string `json:"source"` // "local" | "modrinth" | "curseforge"
+	Source  string `json:"source"`
 }
 
 // ModSearchResult is a unified search result from Modrinth or CurseForge.
@@ -53,8 +53,7 @@ type ModSearchResult struct {
 	Author      string `json:"author"`
 	IconURL     string `json:"iconUrl"`
 	Downloads   int64  `json:"downloads"`
-	Source      string `json:"source"` // "modrinth" | "curseforge"
-	// For download resolution
+	Source      string `json:"source"`
 	VersionID   string `json:"versionId"`
 	DownloadURL string `json:"downloadUrl"`
 	FileName    string `json:"fileName"`
@@ -66,6 +65,7 @@ type CreateServerPayload struct {
 	Type       string `json:"type"`
 	MemoryMB   int    `json:"memoryMB"`
 	BackupPath string `json:"backupPath"`
+	AgreeEula  bool   `json:"agreeEula"`
 }
 
 type ImportServerPayload struct {
@@ -81,7 +81,7 @@ type UpdateConfigPayload struct {
 	MemoryMB   int    `json:"memoryMB"`
 	Port       int    `json:"port"`
 	Watchdog   bool   `json:"watchdog"`
-	RawProps   string `json:"rawProps"` // For raw server.properties editing
+	RawProps   string `json:"rawProps"`
 	Version    string `json:"version"`
 	Type       string `json:"type"`
 	BackupPath string `json:"backupPath"`

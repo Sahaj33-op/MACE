@@ -64,7 +64,6 @@ func CreateBackup(id string) (*BackupItem, error) {
 	w := zip.NewWriter(zipFile)
 	defer w.Close()
 
-	// Archive world directory
 	err = filepath.Walk(worldDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -74,7 +73,6 @@ func CreateBackup(id string) (*BackupItem, error) {
 		if err != nil {
 			return err
 		}
-		// Use forward slashes inside zip
 		relPath = filepath.ToSlash(relPath)
 
 		if info.IsDir() {
@@ -111,7 +109,6 @@ func CreateBackup(id string) (*BackupItem, error) {
 		return nil, fmt.Errorf("failed to archive world: %w", err)
 	}
 
-	// Archive config files
 	for _, cfgName := range configFiles {
 		cfgPath := filepath.Join(inst.Path, cfgName)
 		if !utils.FileExists(cfgPath) {
@@ -142,11 +139,9 @@ func CreateBackup(id string) (*BackupItem, error) {
 		file.Close()
 	}
 
-	// Close writer to flush
 	w.Close()
 	zipFile.Close()
 
-	// Get final file size
 	stat, err := os.Stat(zipPath)
 	if err != nil {
 		return nil, err
@@ -195,7 +190,6 @@ func ListBackups(id string) ([]BackupItem, error) {
 		})
 	}
 
-	// Sort newest first
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].CreatedAt > items[j].CreatedAt
 	})
@@ -215,11 +209,9 @@ func RestoreBackup(id string, backupName string) error {
 		return err
 	}
 
-	// Stop server if running
 	if launcher.IsRunning(id) {
 		launcher.WriteLog(id, "[MACE] Stopping server for backup restore...")
 		StopServer(id)
-		// Wait for shutdown
 		for i := 0; i < 30; i++ {
 			if !launcher.IsRunning(id) {
 				break
@@ -237,7 +229,6 @@ func RestoreBackup(id string, backupName string) error {
 		return fmt.Errorf("backup file not found: %s", backupName)
 	}
 
-	// Safety: move current world and configs to a temporary archive
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	worldDir := filepath.Join(inst.Path, inst.World)
 	oldWorldDir := filepath.Join(inst.Path, fmt.Sprintf("%s_pre_restore_%s", inst.World, timestamp))
@@ -248,10 +239,8 @@ func RestoreBackup(id string, backupName string) error {
 		}
 	}
 
-	// Extract the backup zip
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
-		// Rollback: move old world back
 		if oldWorldDir != "" {
 			os.Rename(oldWorldDir, worldDir)
 		}
@@ -262,7 +251,6 @@ func RestoreBackup(id string, backupName string) error {
 	for _, f := range r.File {
 		destPath := filepath.Join(inst.Path, f.Name)
 
-		// Security: prevent zip-slip by ensuring the path stays inside server dir
 		if !strings.HasPrefix(filepath.Clean(destPath), filepath.Clean(inst.Path)+string(os.PathSeparator)) {
 			continue
 		}
@@ -272,7 +260,6 @@ func RestoreBackup(id string, backupName string) error {
 			continue
 		}
 
-		// Ensure parent directory exists
 		os.MkdirAll(filepath.Dir(destPath), 0755)
 
 		rc, err := f.Open()
@@ -291,7 +278,6 @@ func RestoreBackup(id string, backupName string) error {
 		rc.Close()
 	}
 
-	// Clean up old world archive since restore succeeded
 	os.RemoveAll(oldWorldDir)
 
 	launcher.WriteLog(id, fmt.Sprintf("[MACE] Backup restored successfully: %s", backupName))
@@ -308,7 +294,6 @@ func DeleteBackup(id string, backupName string) error {
 	backupDir := GetBackupDir(inst)
 	zipPath := filepath.Join(backupDir, backupName)
 
-	// Security: ensure path stays inside backup dir
 	rel, err := filepath.Rel(backupDir, zipPath)
 	if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
 		return fmt.Errorf("invalid backup path")

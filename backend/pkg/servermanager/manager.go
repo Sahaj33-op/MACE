@@ -21,28 +21,23 @@ var (
 	statuses   = make(map[string]string)
 	statusesMu sync.RWMutex
 
-	// CrashCallback is triggered when a server process exits abnormally
 	CrashCallback func(id string, reason string, resolution string)
 )
 
 // Helper to resolve the root servers directory dynamically
 func GetServerRoot() string {
-	// If current directory has a "servers" folder, use it
 	if _, err := os.Stat("servers"); err == nil {
 		abs, _ := filepath.Abs("servers")
 		return abs
 	}
-	// Otherwise look up in parent directory (e.g., if run from backend/)
 	if _, err := os.Stat("../servers"); err == nil {
 		abs, _ := filepath.Abs("../servers")
 		return abs
 	}
-	// Check if run from backend/cmd/mace/
 	if _, err := os.Stat("../../../servers"); err == nil {
 		abs, _ := filepath.Abs("../../../servers")
 		return abs
 	}
-	// Fallback to creating a "servers" folder in parent directory if inside backend
 	cwd, _ := os.Getwd()
 	if filepath.Base(cwd) == "backend" || filepath.Base(cwd) == "cmd" || filepath.Base(cwd) == "mace" {
 		dir := filepath.Join(cwd, "..", "servers")
@@ -53,7 +48,6 @@ func GetServerRoot() string {
 		abs, _ := filepath.Abs(dir)
 		return abs
 	}
-	// Default to local folder
 	dir := "./servers"
 	utils.EnsureDir(dir)
 	abs, _ := filepath.Abs(dir)
@@ -92,7 +86,6 @@ func LoadServer(id string) (*ServerInstance, error) {
 		return nil, err
 	}
 
-	// Dynamic status resolution
 	if launcher.IsRunning(id) {
 		inst.Status = getStatus(id)
 		if inst.Status == "offline" {
@@ -139,7 +132,6 @@ func ListServers() ([]ServerInstance, error) {
 		}
 	}
 
-	// Return empty list instead of null if none found
 	if list == nil {
 		list = []ServerInstance{}
 	}
@@ -149,11 +141,13 @@ func ListServers() ([]ServerInstance, error) {
 
 // CreateServer creates a new isolated server directory and downloads the JAR.
 func CreateServer(payload CreateServerPayload) (*ServerInstance, error) {
-	// 1. Create a safe ID slug
+	if !payload.AgreeEula {
+		return nil, fmt.Errorf("you must agree to the Minecraft EULA to create a server")
+	}
+
 	safeName := strings.ToLower(payload.Name)
 	safeName = strings.ReplaceAll(safeName, " ", "-")
 	
-	// Strip special characters
 	var sb strings.Builder
 	for _, r := range safeName {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
@@ -167,7 +161,6 @@ func CreateServer(payload CreateServerPayload) (*ServerInstance, error) {
 		return nil, err
 	}
 
-	// Find correct Java version
 	reqJava := utils.GetRequiredJavaVersion(payload.Version)
 	javaPath := "java"
 	if jPath, found := utils.FindJavaVersion(reqJava); found {
@@ -179,10 +172,8 @@ func CreateServer(payload CreateServerPayload) (*ServerInstance, error) {
 		}
 	}
 
-	// 2. Perform Jar Downloading / Installation in background
 	setStatus(id, "installing")
 
-	// Pre-create properties so it shows up in UI
 	port := 25565
 	servers, _ := ListServers()
 	usedPorts := make(map[int]bool)
@@ -220,18 +211,15 @@ func CreateServer(payload CreateServerPayload) (*ServerInstance, error) {
 		err := downloader.InstallServer(id, payload.Type, payload.Version, serverDir, javaPath)
 		if err != nil {
 			launcher.WriteLog(id, "[MACE] Installation failed: " + err.Error())
-			setStatus(id, "offline") // Or handle error state
+			setStatus(id, "offline")
 			return
 		}
 
-		// Write default properties file
 		props := fmt.Sprintf("server-port=%d\nquery.port=%d\nmotd=MACE Server: %s\ndifficulty=easy\npvp=true\nmax-players=20\nonline-mode=true\n", port, port, payload.Name)
 		os.WriteFile(filepath.Join(serverDir, "server.properties"), []byte(props), 0644)
 
-		// Write EULA
 		os.WriteFile(filepath.Join(serverDir, "eula.txt"), []byte("eula=true\n"), 0644)
 
-		// Ensure mods/ and plugins/ directories exist
 		EnsureContentDirs(serverDir)
 
 		launcher.WriteLog(id, "[MACE] Installation complete!")
@@ -253,7 +241,6 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		return nil, fmt.Errorf("invalid directory: %s", absPath)
 	}
 
-	// Basic validation: ensure there's at least a jar or script
 	files, err := os.ReadDir(absPath)
 	if err != nil {
 		return nil, err
@@ -314,7 +301,6 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		return nil, fmt.Errorf("no valid minecraft server jars or run scripts found in directory")
 	}
 
-	// Try to find any jar to detect the version if matchedJarName is still empty
 	if matchedJarName == "" {
 		for _, f := range files {
 			if strings.HasSuffix(strings.ToLower(f.Name()), ".jar") {
@@ -327,22 +313,19 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		}
 	}
 
-	detectedVersion := "1.20.4" // A clean, default fallback version rather than "imported" so searches work immediately
+	detectedVersion := "1.20.4"
 	if matchedJarName != "" {
 		if ver := detectMinecraftVersion(filepath.Join(absPath, matchedJarName)); ver != "" {
 			detectedVersion = ver
 		}
 	}
 
-	// mark existence of critical files like eula.txt (or attempt to create eula.txt if absent)
 	if !utils.FileExists(filepath.Join(absPath, "eula.txt")) {
 		os.WriteFile(filepath.Join(absPath, "eula.txt"), []byte("eula=true\n"), 0644)
 	}
 
-	// Ensure mods/ and plugins/ folders exist in the imported server directory
 	EnsureContentDirs(absPath)
 
-	// Create a safe ID slug
 	name := payload.Name
 	if name == "" {
 		name = filepath.Base(absPath)
@@ -358,7 +341,6 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 	}
 	id := fmt.Sprintf("%s-import-%d", sb.String(), time.Now().Unix()%100000)
 
-	// Find correct Java version for imported server
 	reqJava := utils.GetRequiredJavaVersion(detectedVersion)
 	javaPath := "java"
 	if jPath, found := utils.FindJavaVersion(reqJava); found {
@@ -370,7 +352,6 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		}
 	}
 
-	// Try extracting motd and port
 	port := 25565
 	propsFile := filepath.Join(absPath, "server.properties")
 	if utils.FileExists(propsFile) {
@@ -393,7 +374,7 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		Name:      name,
 		Version:   detectedVersion,
 		Type:      detectedType,
-		Path:      absPath, // Use external path
+		Path:      absPath,
 		Status:    "offline",
 		JavaPath:  javaPath,
 		MemoryMB:  2048,
@@ -417,7 +398,6 @@ func StartServer(id string) (string, error) {
 		return "", err
 	}
 
-	// Validate and align Java requirement
 	reqJava := utils.GetRequiredJavaVersion(inst.Version)
 	currentVerStr := utils.GetJavaVersion(inst.JavaPath)
 	currentVer := utils.ParseMajorJavaVersion(currentVerStr)
@@ -506,7 +486,6 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 		inst.Type = ServerType(payload.Type)
 	}
 
-	// Save server properties file
 	propsFile := filepath.Join(inst.Path, "server.properties")
 	if payload.RawProps != "" {
 		if err := os.WriteFile(propsFile, []byte(payload.RawProps), 0644); err != nil {
@@ -526,18 +505,14 @@ func DeleteServer(id string) error {
 
 	if launcher.IsRunning(id) {
 		launcher.KillServer(id)
-		time.Sleep(500 * time.Millisecond) // Give time to exit
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	// For managed servers, inst.Path == GetServerRoot()/id
-	// For imported servers, inst.Path is external.
-	// Only delete the actual files if it's a managed server.
 	managedPath := filepath.Clean(filepath.Join(GetServerRoot(), id))
 	if filepath.Clean(inst.Path) == managedPath {
 		return os.RemoveAll(inst.Path)
 	}
 	
-	// External server, just delete the MACE metadata wrapper
 	return os.RemoveAll(managedPath)
 }
 
@@ -546,12 +521,10 @@ func DetectJava() ([]utils.JavaInstall, error) {
 	return utils.FindJavaInstallations(), nil
 }
 
-// SubscribeLogs forwards subscription to launcher
 func SubscribeLogs(id string) chan string {
 	return launcher.SubscribeLogs(id)
 }
 
-// UnsubscribeLogs forwards unsubscription to launcher
 func UnsubscribeLogs(id string, ch chan string) {
 	launcher.UnsubscribeLogs(id, ch)
 }
@@ -567,7 +540,6 @@ func GetAvailableVersions() (map[string][]string, error) {
 	versionsCacheMu.Lock()
 	defer versionsCacheMu.Unlock()
 
-	// If cache is fresh (less than 1 hour old), return it
 	if versionsCache != nil && time.Since(versionsCacheTime) < 1*time.Hour {
 		return versionsCache, nil
 	}
@@ -621,12 +593,10 @@ func GetAvailableVersions() (map[string][]string, error) {
 	}
 
 	if firstErr != nil {
-		// If there is an error but we have an old cache, return it to ensure resilience
 		if versionsCache != nil {
-			versionsCacheTime = time.Now() // Delay next fetch attempt by 1 hour
+			versionsCacheTime = time.Now()
 			return versionsCache, nil
 		}
-		// If vanilla is empty and we have no cache, we cannot proceed
 		if len(results["vanilla"]) == 0 {
 			return nil, fmt.Errorf("failed to fetch versions: %w", firstErr)
 		}
@@ -678,14 +648,12 @@ func isMinecraftJar(jarPath string) bool {
 
 // detectMinecraftVersion tries to extract the Minecraft version from a JAR file name or its internal version files.
 func detectMinecraftVersion(jarPath string) string {
-	// 1. Try filename regex first
 	baseName := filepath.Base(jarPath)
 	re := regexp.MustCompile(`1\.\d{1,2}(?:\.\d{1,2})?`)
 	if match := re.FindString(baseName); match != "" {
 		return match
 	}
 
-	// 2. Open zip and scan for files
 	r, err := zip.OpenReader(jarPath)
 	if err != nil {
 		return ""
@@ -693,7 +661,6 @@ func detectMinecraftVersion(jarPath string) string {
 	defer r.Close()
 
 	for _, f := range r.File {
-		// Look for version.json at the root
 		if f.Name == "version.json" {
 			rc, err := f.Open()
 			if err == nil {
@@ -712,7 +679,6 @@ func detectMinecraftVersion(jarPath string) string {
 				}
 			}
 		}
-		// Look for patch.properties
 		if strings.HasSuffix(f.Name, "patch.properties") {
 			rc, err := f.Open()
 			if err == nil {

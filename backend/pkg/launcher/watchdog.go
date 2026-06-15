@@ -17,7 +17,6 @@ func RunWatchdog(
 	statusCallback func(string, string),
 	crashCallback func(string, string, string),
 ) {
-	// Block until process exits
 	err := cmd.Wait()
 	
 	DeregisterProcess(id)
@@ -29,14 +28,12 @@ func RunWatchdog(
 
 	WriteLog(id, fmt.Sprintf("[MACE] Server process terminated with exit code %d (err: %v)", exitCode, err))
 
-	// If exitCode == 0, it was a clean stop command
-	if exitCode == 0 || exitCode == 130 { // 130 is SIGINT
+	if exitCode == 0 || exitCode == 130 {
 		statusCallback(id, "offline")
 		WriteLog(id, "[MACE] Server stopped cleanly.")
 		return
 	}
 
-	// Abnormal exit - crash. Analyze it.
 	reason, resolution := AnalyzeCrash(id, dir)
 	if reason != "" && crashCallback != nil {
 		go crashCallback(id, reason, resolution)
@@ -47,7 +44,6 @@ func RunWatchdog(
 		WriteLog(id, "[MACE] Watchdog: Crash detected! Auto-restarting server in 5 seconds...")
 		time.Sleep(5 * time.Second)
 
-		// Attempt restart
 		_, err := StartServer(id, dir, javaPath, memoryMB, watchdogEnabled, statusCallback, crashCallback)
 		if err != nil {
 			WriteLog(id, fmt.Sprintf("[MACE] Watchdog: Auto-restart failed: %v", err))

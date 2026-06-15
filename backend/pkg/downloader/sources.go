@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-// Mojang JSON Types
 type MojangManifest struct {
 	Latest struct {
 		Release  string `json:"release"`
@@ -33,18 +32,15 @@ type MojangVersionDetail struct {
 	} `json:"downloads"`
 }
 
-// Paper JSON Types
 type PaperVersionsResponse struct {
 	Builds []int `json:"builds"`
 }
 
-// Fabric JSON Types
 type FabricInstallerVersion struct {
 	Version string `json:"version"`
 	Stable  bool   `json:"stable"`
 }
 
-// Quilt JSON Types
 type QuiltInstallerVersion struct {
 	Version string `json:"version"`
 }
@@ -138,7 +134,6 @@ func FetchPaperVersions() ([]string, error) {
 		}
 	}
 
-	// Reverse list to show newest first
 	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
 		list[i], list[j] = list[j], list[i]
 	}
@@ -213,7 +208,6 @@ func FetchForgeVersions() ([]string, error) {
 
 	versionMap := make(map[string]bool)
 	for key := range data.Promos {
-		// Key is like "1.20.1-latest" or "1.20.1-recommended"
 		idx := strings.Index(key, "-")
 		if idx != -1 {
 			mcVer := key[:idx]
@@ -229,7 +223,7 @@ func FetchForgeVersions() ([]string, error) {
 	}
 
 	sort.Slice(list, func(i, j int) bool {
-		return CompareVersions(list[i], list[j]) > 0 // Descending (newest first)
+		return CompareVersions(list[i], list[j]) > 0
 	})
 
 	return list, nil
@@ -280,7 +274,6 @@ func FetchVanillaURL(version string) (string, error) {
 
 // FetchPaperURL fetches the latest build download URL for PaperMC for a specific version.
 func FetchPaperURL(version string) (string, error) {
-	// 1. Get builds for the version
 	url := fmt.Sprintf("https://api.papermc.io/v2/projects/paper/versions/%s", version)
 	resp, err := httpClient.Get(url)
 	if err != nil {
@@ -532,7 +525,7 @@ func GetNeoForgeVersionForMC(mcVersion string) (string, error) {
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
-		return CompareNeoForgeVersions(candidates[i], candidates[j]) > 0 // Descending (latest first)
+		return CompareNeoForgeVersions(candidates[i], candidates[j]) > 0
 	})
 
 	return candidates[0], nil
