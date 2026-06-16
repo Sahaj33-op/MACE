@@ -42,6 +42,10 @@ export function BrowseSpiget() {
   return window['go']['main']['App']['BrowseSpiget']();
 }
 
+export function CompleteSetup(arg1, arg2) {
+  return window['go']['main']['App']['CompleteSetup'](arg1, arg2);
+}
+
 export function CreateBackup(arg1) {
   return window['go']['main']['App']['CreateBackup'](arg1);
 }
@@ -78,6 +82,10 @@ export function GetConsoleLogs(arg1) {
   return window['go']['main']['App']['GetConsoleLogs'](arg1);
 }
 
+export function GetDefaultServersDir() {
+  return window['go']['main']['App']['GetDefaultServersDir']();
+}
+
 export function GetPlayerRoles(arg1) {
   return window['go']['main']['App']['GetPlayerRoles'](arg1);
 }
@@ -108,6 +116,10 @@ export function InstallModrinthMod(arg1, arg2, arg3, arg4, arg5) {
 
 export function InstallSpigetPlugin(arg1, arg2) {
   return window['go']['main']['App']['InstallSpigetPlugin'](arg1, arg2);
+}
+
+export function IsFirstRun() {
+  return window['go']['main']['App']['IsFirstRun']();
 }
 
 export function ListBackups(arg1) {
@@ -152,6 +164,10 @@ export function SearchModrinth(arg1, arg2, arg3, arg4) {
 
 export function SearchSpiget(arg1) {
   return window['go']['main']['App']['SearchSpiget'](arg1);
+}
+
+export function SelectServersDir() {
+  return window['go']['main']['App']['SelectServersDir']();
 }
 
 export function SendCommand(arg1, arg2) {

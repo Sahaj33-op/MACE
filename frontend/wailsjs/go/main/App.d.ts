@@ -24,6 +24,8 @@ export function BrowseModrinth(arg1:string,arg2:string,arg3:string):Promise<Arra
 
 export function BrowseSpiget():Promise<Array<downloader.SpigetSearchResult>>;
 
+export function CompleteSetup(arg1:string,arg2:boolean):Promise<void>;
+
 export function CreateBackup(arg1:string):Promise<servermanager.BackupItem>;
 
 export function CreateServer(arg1:servermanager.CreateServerPayload):Promise<servermanager.ServerInstance>;
@@ -42,6 +44,8 @@ export function GetAvailableVersions():Promise<Record<string, Array<string>>>;
 
 export function GetConsoleLogs(arg1:string):Promise<Array<string>>;
 
+export function GetDefaultServersDir():Promise<string>;
+
 export function GetPlayerRoles(arg1:string):Promise<Record<string, any>>;
 
 export function GetServerProperties(arg1:string):Promise<string>;
@@ -57,6 +61,8 @@ export function InstallHangarPlugin(arg1:string,arg2:string,arg3:string):Promise
 export function InstallModrinthMod(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string):Promise<servermanager.ContentItem>;
 
 export function InstallSpigetPlugin(arg1:string,arg2:number):Promise<servermanager.ContentItem>;
+
+export function IsFirstRun():Promise<boolean>;
 
 export function ListBackups(arg1:string):Promise<Array<servermanager.BackupItem>>;
 
@@ -79,6 +85,8 @@ export function SearchHangar(arg1:string):Promise<Array<downloader.HangarSearchR
 export function SearchModrinth(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<downloader.ModrinthSearchResult>>;
 
 export function SearchSpiget(arg1:string):Promise<Array<downloader.SpigetSearchResult>>;
+
+export function SelectServersDir():Promise<string>;
 
 export function SendCommand(arg1:string,arg2:string):Promise<void>;
 

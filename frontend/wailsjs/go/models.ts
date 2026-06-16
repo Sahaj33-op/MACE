@@ -290,6 +290,8 @@ export namespace utils {
 	
 	export class AppSettings {
 	    curseForgeApiKey: string;
+	    serversDir: string;
+	    setupComplete: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppSettings(source);
@@ -298,6 +300,8 @@ export namespace utils {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.curseForgeApiKey = source["curseForgeApiKey"];
+	        this.serversDir = source["serversDir"];
+	        this.setupComplete = source["setupComplete"];
 	    }
 	}
 	export class JavaInstall {

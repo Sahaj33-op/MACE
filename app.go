@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -460,4 +463,81 @@ func (a *App) BrowseForBackupDir() (string, error) {
 	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select Backup Directory",
 	})
+}
+
+// --- First-Run Setup ---
+
+// IsFirstRun returns true if the initial setup has not yet been completed.
+func (a *App) IsFirstRun() (bool, error) {
+	s, err := utils.LoadSettings()
+	if err != nil {
+		return true, nil
+	}
+	return !s.SetupComplete, nil
+}
+
+// SelectServersDir opens a native folder picker for the servers root directory.
+func (a *App) SelectServersDir() (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose where MACE stores your servers",
+	})
+}
+
+// GetDefaultServersDir returns the default servers directory path so the frontend can display it.
+func (a *App) GetDefaultServersDir() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return filepath.Join(".", "servers"), nil
+	}
+	dir := filepath.Join(filepath.Dir(exe), "servers")
+	abs, _ := filepath.Abs(dir)
+	return abs, nil
+}
+
+// CompleteSetup persists the chosen servers directory, marks setup as done,
+// and optionally creates a Desktop shortcut to the MACE executable.
+func (a *App) CompleteSetup(serversDir string, createShortcut bool) error {
+	s, err := utils.LoadSettings()
+	if err != nil {
+		s = &utils.AppSettings{}
+	}
+
+	s.ServersDir = serversDir
+	s.SetupComplete = true
+
+	if err := utils.SaveSettings(s); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
+	}
+
+	// Ensure the servers directory exists
+	if serversDir != "" {
+		if err := os.MkdirAll(serversDir, 0755); err != nil {
+			return fmt.Errorf("failed to create servers directory: %w", err)
+		}
+	}
+
+	if createShortcut {
+		exe, err := os.Executable()
+		if err != nil {
+			return fmt.Errorf("could not locate executable: %w", err)
+		}
+		exePath, _ := filepath.Abs(exe)
+
+		// Use PowerShell + WScript.Shell COM to create the .lnk shortcut
+		ps := fmt.Sprintf(`
+$ws = New-Object -ComObject WScript.Shell
+$s = $ws.CreateShortcut("$env:USERPROFILE\Desktop\MACE.lnk")
+$s.TargetPath = %q
+$s.WorkingDirectory = %q
+$s.Description = "MACE - Minecraft Server Manager"
+$s.Save()
+`, exePath, filepath.Dir(exePath))
+
+		cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", ps)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("shortcut creation failed: %w\n%s", err, string(out))
+		}
+	}
+
+	return nil
 }

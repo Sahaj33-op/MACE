@@ -26,6 +26,13 @@ var (
 
 // Helper to resolve the root servers directory dynamically
 func GetServerRoot() string {
+	// If the user has configured a custom servers directory, use it.
+	if s, err := utils.LoadSettings(); err == nil && s.ServersDir != "" {
+		utils.EnsureDir(s.ServersDir)
+		abs, _ := filepath.Abs(s.ServersDir)
+		return abs
+	}
+
 	if _, err := os.Stat("servers"); err == nil {
 		abs, _ := filepath.Abs("servers")
 		return abs

@@ -10,6 +10,8 @@ import (
 // AppSettings holds all persistent application-level configuration.
 type AppSettings struct {
 	CurseForgeAPIKey string `json:"curseForgeApiKey"`
+	ServersDir       string `json:"serversDir"`
+	SetupComplete    bool   `json:"setupComplete"`
 }
 
 var (

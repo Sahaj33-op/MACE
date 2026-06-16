@@ -75,6 +75,11 @@ declare global {
           // Player Management
           GetActivePlayers(id: string): Promise<string[]>;
           GetPlayerRoles(id: string): Promise<{ ops: string[]; whitelisted: string[] }>;
+          // First-Run Setup
+          IsFirstRun(): Promise<boolean>;
+          SelectServersDir(): Promise<string>;
+          GetDefaultServersDir(): Promise<string>;
+          CompleteSetup(serversDir: string, createShortcut: boolean): Promise<void>;
         };
       };
     };
@@ -335,4 +340,22 @@ export function offPlayersUpdated(id: string): void {
   if (window.runtime && window.runtime.EventsOff) {
     window.runtime.EventsOff(`players-updated-${id}`);
   }
+}
+
+// ---- First-Run Setup ----
+
+export async function isFirstRun(): Promise<boolean> {
+  return window.go.main.App.IsFirstRun();
+}
+
+export async function selectServersDir(): Promise<string> {
+  return window.go.main.App.SelectServersDir();
+}
+
+export async function getDefaultServersDir(): Promise<string> {
+  return window.go.main.App.GetDefaultServersDir();
+}
+
+export async function completeSetup(serversDir: string, createShortcut: boolean): Promise<void> {
+  return window.go.main.App.CompleteSetup(serversDir, createShortcut);
 }
