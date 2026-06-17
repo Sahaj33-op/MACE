@@ -85,7 +85,6 @@ func SearchModrinth(query, projectType, loader, gameVersion string, limit int) (
 		limit = 20
 	}
 
-	// Build the facets filter for automatic loader+version narrowing
 	facets := buildModrinthFacets(projectType, loader, gameVersion)
 
 	params := url.Values{}
@@ -94,7 +93,6 @@ func SearchModrinth(query, projectType, loader, gameVersion string, limit int) (
 	}
 	params.Set("facets", facets)
 	params.Set("limit", fmt.Sprintf("%d", limit))
-	// Sort by downloads for browsing when no query
 	if query == "" {
 		params.Set("index", "downloads")
 	}
@@ -146,7 +144,6 @@ func BrowseModrinth(projectType, loader, gameVersion string, limit int) ([]Modri
 // ResolveModrinthVersion finds the best compatible version for a project given loader+gameVersion.
 // For plugin servers (paper, spigot), the loader is mapped to the correct Modrinth category.
 func ResolveModrinthVersion(projectID, loader, gameVersion string) (*ModrinthVersionInfo, error) {
-	// Map the loader for plugin servers
 	modrinthLoader := mapLoaderForModrinth(loader)
 
 	params := url.Values{}
@@ -177,7 +174,6 @@ func ResolveModrinthVersion(projectID, loader, gameVersion string) (*ModrinthVer
 	}
 
 	if len(versions) == 0 {
-		// For plugin servers, try with broader loader terms (bukkit is parent of paper/spigot)
 		if modrinthLoader == "paper" || modrinthLoader == "spigot" {
 			params.Set("loaders", `["bukkit"]`)
 			reqURL = fmt.Sprintf("%s/project/%s/version?%s", modrinthAPIBase, projectID, params.Encode())
@@ -204,17 +200,13 @@ func ResolveModrinthVersion(projectID, loader, gameVersion string) (*ModrinthVer
 func buildModrinthFacets(projectType, loader, gameVersion string) string {
 	var groups []string
 
-	// Project type facet
 	if projectType != "" {
 		groups = append(groups, fmt.Sprintf(`["project_type:%s"]`, projectType))
 	}
 
-	// Loader/category facet
 	if loader != "" && loader != "vanilla" {
 		modrinthLoader := mapLoaderForModrinth(loader)
 		if isPluginProjectType(projectType) {
-			// For plugins, use paper/spigot/bukkit as categories
-			// Include bukkit as a fallback since many plugins list bukkit compatibility
 			if modrinthLoader == "paper" {
 				groups = append(groups, `["categories:paper","categories:bukkit","categories:spigot"]`)
 			} else if modrinthLoader == "spigot" {
@@ -223,12 +215,10 @@ func buildModrinthFacets(projectType, loader, gameVersion string) string {
 				groups = append(groups, fmt.Sprintf(`["categories:%s"]`, modrinthLoader))
 			}
 		} else {
-			// For mods/modpacks, use the loader directly as a category
 			groups = append(groups, fmt.Sprintf(`["categories:%s"]`, modrinthLoader))
 		}
 	}
 
-	// Game version facet
 	if gameVersion != "" {
 		groups = append(groups, fmt.Sprintf(`["versions:%s"]`, gameVersion))
 	}

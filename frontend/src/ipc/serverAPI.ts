@@ -13,6 +13,7 @@ declare global {
             type: ServerType;
             memoryMB: number;
             backupPath?: string;
+            agreeEula: boolean;
           }): Promise<ServerInstance>;
           BrowseForServerDir(): Promise<string>;
           ImportServer(payload: { path: string; name: string }): Promise<ServerInstance>;
@@ -34,7 +35,14 @@ declare global {
             version: string;
             type: string;
             backupPath: string;
+            playitEnabled: boolean;
           }): Promise<void>;
+          GetPlayitStatus(id: string): Promise<{
+            playitEnabled: boolean;
+            isRunning: boolean;
+            claimUrl: string;
+            address: string;
+          }>;
           DetectJava(): Promise<JavaInstall[]>;
           GetAvailableVersions(): Promise<Record<string, string[]>>;
           GetServerResources(id: string): Promise<{ cpuPercent: number; memoryMB: number; uptime: number }>;
@@ -74,6 +82,11 @@ declare global {
           // Player Management
           GetActivePlayers(id: string): Promise<string[]>;
           GetPlayerRoles(id: string): Promise<{ ops: string[]; whitelisted: string[] }>;
+          // First-Run Setup
+          IsFirstRun(): Promise<boolean>;
+          SelectServersDir(): Promise<string>;
+          GetDefaultServersDir(): Promise<string>;
+          CompleteSetup(serversDir: string, createShortcut: boolean): Promise<void>;
         };
       };
     };
@@ -94,6 +107,7 @@ export async function createServer(payload: {
   type: ServerType;
   memoryMB: number;
   backupPath?: string;
+  agreeEula: boolean;
 }): Promise<ServerInstance> {
   return window.go.main.App.CreateServer(payload);
 }
@@ -145,9 +159,26 @@ export async function updateServerConfig(payload: {
   version: string;
   type: string;
   backupPath: string;
+  playitEnabled: boolean;
 }): Promise<{ result: string }> {
   await window.go.main.App.UpdateServerConfig(payload);
   return { result: "updated" };
+}
+
+export async function getPlayitStatus(id: string): Promise<{
+  playitEnabled: boolean;
+  isRunning: boolean;
+  claimUrl: string;
+  address: string;
+}> {
+  return window.go.main.App.GetPlayitStatus(id);
+}
+
+export function onPlayitAddressUpdated(id: string, callback: (address: string) => void): () => void {
+  if (window.runtime && window.runtime.EventsOn) {
+    return window.runtime.EventsOn(`playit-address-updated-${id}`, callback);
+  }
+  return () => {};
 }
 
 export async function deleteServer(id: string): Promise<{ result: string }> {
@@ -333,4 +364,22 @@ export function offPlayersUpdated(id: string): void {
   if (window.runtime && window.runtime.EventsOff) {
     window.runtime.EventsOff(`players-updated-${id}`);
   }
+}
+
+// ---- First-Run Setup ----
+
+export async function isFirstRun(): Promise<boolean> {
+  return window.go.main.App.IsFirstRun();
+}
+
+export async function selectServersDir(): Promise<string> {
+  return window.go.main.App.SelectServersDir();
+}
+
+export async function getDefaultServersDir(): Promise<string> {
+  return window.go.main.App.GetDefaultServersDir();
+}
+
+export async function completeSetup(serversDir: string, createShortcut: boolean): Promise<void> {
+  return window.go.main.App.CompleteSetup(serversDir, createShortcut);
 }

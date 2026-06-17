@@ -7,7 +7,6 @@ import (
 )
 
 func TestAnalyzeCrash(t *testing.T) {
-	// Set up temporary directories
 	tempDir, err := os.MkdirTemp("", "mace-test-crash-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -16,7 +15,6 @@ func TestAnalyzeCrash(t *testing.T) {
 
 	instanceID := "test-instance"
 
-	// Mocking console logs: Java version mismatch
 	WriteLog(instanceID, "Exception in thread \"main\" java.lang.UnsupportedClassVersionError: net/minecraft/bundler/Main has been compiled by a more recent version of the Java Runtime")
 
 	reason, _ := AnalyzeCrash(instanceID, tempDir)
@@ -24,10 +22,8 @@ func TestAnalyzeCrash(t *testing.T) {
 		t.Errorf("Expected reason 'Java Version Mismatch', got '%s'", reason)
 	}
 
-	// Clear logs
 	ClearLogs(instanceID)
 
-	// Mocking Out of Memory in crash reports
 	crashReportsDir := filepath.Join(tempDir, "crash-reports")
 	if err := os.Mkdir(crashReportsDir, 0755); err != nil {
 		t.Fatalf("Failed to create crash-reports dir: %v", err)

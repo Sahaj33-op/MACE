@@ -5,8 +5,9 @@ import CreateServer from "./pages/CreateServer";
 import ImportServer from "./pages/ImportServer";
 import Settings from "./pages/Settings";
 import CrashDialog from "./components/CrashDialog";
+import FirstRunWizard from "./components/FirstRunWizard";
 import { Server, PlusCircle, FolderOpen, Settings as SettingsIcon, LayoutDashboard, Cpu, Database } from "lucide-react";
-import { listServers, detectJava } from "./ipc/serverAPI";
+import { listServers, detectJava, isFirstRun } from "./ipc/serverAPI";
 import type { ServerInstance } from "./ipc/types";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [javaDetected, setJavaDetected] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   // Poll server configurations every 3 seconds to keep UI synced
   const refreshServers = () => {
@@ -30,9 +32,20 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Check if this is the first run before loading servers
+    isFirstRun()
+      .then((firstRun) => {
+        if (firstRun) {
+          setShowWizard(true);
+        }
+      })
+      .catch(() => {
+        // If we can't reach the backend yet, assume not first run
+      });
+
     refreshServers();
     const interval = setInterval(refreshServers, 3000);
-    
+
     // Check Java installation
     detectJava().then((javas) => {
       setJavaDetected(javas.length > 0 && javas[0].version !== "Default System (java)");
@@ -286,6 +299,10 @@ export default function App() {
       </aside>
 
       {/* Main Page Area */}
+      {showWizard && (
+        <FirstRunWizard onComplete={() => setShowWizard(false)} />
+      )}
+
       <main style={{ padding: "2.5rem", overflowY: "auto", maxHeight: "100vh" }}>
         {loading ? (
           <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center" }}>

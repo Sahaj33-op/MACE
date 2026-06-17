@@ -97,7 +97,6 @@ func AddContent(id, srcPath, contentType string) (*ContentItem, error) {
 		return nil, fmt.Errorf("only .jar files are supported")
 	}
 
-	// Validate JAR contains the right signature for the loader
 	if err := validateContentJar(srcPath, inst, contentType); err != nil {
 		return nil, err
 	}
@@ -139,12 +138,10 @@ func RemoveContent(id, fileName, contentType string) error {
 	dir := contentDir(inst.Path, contentType)
 	target := filepath.Join(dir, fileName)
 
-	// Safety: only allow deletion within the content directory
 	if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(dir)) {
 		return fmt.Errorf("invalid file path")
 	}
 
-	// Try both enabled and disabled variants
 	if err := os.Remove(target); err != nil {
 		alt := target + ".disabled"
 		if strings.HasSuffix(target, ".disabled") {
@@ -167,7 +164,6 @@ func ToggleContent(id, fileName, contentType string, enabled bool) error {
 	dir := contentDir(inst.Path, contentType)
 
 	if enabled {
-		// Currently disabled, rename .jar.disabled → .jar
 		src := filepath.Join(dir, fileName)
 		if !strings.HasSuffix(src, ".disabled") {
 			src = src + ".disabled"
@@ -176,7 +172,6 @@ func ToggleContent(id, fileName, contentType string, enabled bool) error {
 		return os.Rename(src, dst)
 	}
 
-	// Currently enabled, rename .jar → .jar.disabled
 	src := filepath.Join(dir, fileName)
 	if strings.HasSuffix(src, ".disabled") {
 		src = strings.TrimSuffix(src, ".disabled")
@@ -255,7 +250,6 @@ func ApplyModpack(id, zipPath string) (*ModpackMeta, error) {
 		Source:  "local",
 	}
 
-	// Check if this is a Modrinth pack
 	if isModrinthPack(r) {
 		m, err := applyModrinthPack(r, inst.Path, inst)
 		if err != nil {
@@ -263,13 +257,11 @@ func ApplyModpack(id, zipPath string) (*ModpackMeta, error) {
 		}
 		meta = m
 	} else {
-		// Generic zip: extract everything into the server directory
 		if err := extractGenericPack(r, inst.Path); err != nil {
 			return nil, err
 		}
 	}
 
-	// Persist modpack metadata on the instance
 	inst.Modpack = meta
 	if err := SaveServer(inst); err != nil {
 		return nil, err
@@ -278,7 +270,7 @@ func ApplyModpack(id, zipPath string) (*ModpackMeta, error) {
 	return meta, nil
 }
 
-// --- private helpers ---
+
 
 func isModrinthPack(r *zip.ReadCloser) bool {
 	for _, f := range r.File {
@@ -301,7 +293,6 @@ type modrinthIndex struct {
 }
 
 func applyModrinthPack(r *zip.ReadCloser, serverPath string, inst *ServerInstance) (*ModpackMeta, error) {
-	// 1. Parse modrinth.index.json
 	var index modrinthIndex
 	for _, f := range r.File {
 		if f.Name == "modrinth.index.json" {
@@ -321,9 +312,7 @@ func applyModrinthPack(r *zip.ReadCloser, serverPath string, inst *ServerInstanc
 	modsDir := filepath.Join(serverPath, "mods")
 	os.MkdirAll(modsDir, 0755)
 
-	// 2. Download each file listed in the index
 	for _, file := range index.Files {
-		// Skip client-only files
 		if env, ok := file.Env["server"]; ok && env == "unsupported" {
 			continue
 		}
@@ -334,12 +323,10 @@ func applyModrinthPack(r *zip.ReadCloser, serverPath string, inst *ServerInstanc
 		os.MkdirAll(filepath.Dir(destPath), 0755)
 
 		if err := downloadFile(file.Downloads[0], destPath); err != nil {
-			// Non-fatal: log and continue
 			continue
 		}
 	}
 
-	// 3. Extract overrides/ into server directory
 	for _, f := range r.File {
 		if !strings.HasPrefix(f.Name, "overrides/") || f.FileInfo().IsDir() {
 			continue
@@ -375,7 +362,6 @@ func extractGenericPack(r *zip.ReadCloser, serverPath string) error {
 			continue
 		}
 		dest := filepath.Join(serverPath, filepath.FromSlash(f.Name))
-		// Safety check: prevent path traversal
 		if !strings.HasPrefix(filepath.Clean(dest), filepath.Clean(serverPath)) {
 			continue
 		}
@@ -464,7 +450,6 @@ func validateContentJar(jarPath string, inst *ServerInstance, contentType string
 			}
 			return fmt.Errorf("not a valid %s mod jar (missing META-INF/mods.toml)", inst.Type)
 		default:
-			// Vanilla/Paper/Spigot don't support mods
 			return fmt.Errorf("server type %s does not support mods", inst.Type)
 		}
 	}

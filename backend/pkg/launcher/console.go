@@ -20,7 +20,6 @@ var (
 	stdins   = make(map[string]io.WriteCloser)
 	stdinsMu sync.RWMutex
 
-	// LogListeners permits subscribing to live console output (for WebSockets)
 	listeners   = make(map[string][]chan string)
 	listenersMu sync.RWMutex
 )
@@ -44,7 +43,6 @@ func WriteLog(id string, text string) {
 	buf := getOrCreateBuffer(id)
 	buf.mu.Lock()
 
-	// Split by newlines and add line by line
 	lines := strings.Split(text, "\n")
 	for _, line := range lines {
 		trimmed := strings.TrimRight(line, "\r")
@@ -57,10 +55,8 @@ func WriteLog(id string, text string) {
 			buf.Lines = buf.Lines[1:]
 		}
 
-		// Broadcast to listeners
 		broadcastLog(id, trimmed)
 
-		// Parse for player joins/leaves
 		ParseLogLineForPlayers(id, trimmed)
 	}
 	buf.mu.Unlock()
@@ -152,7 +148,6 @@ func broadcastLog(id string, logLine string) {
 		select {
 		case ch <- logLine:
 		default:
-			// Buffer full, skip to avoid blocking the console capture goroutine
 		}
 	}
 }

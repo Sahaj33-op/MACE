@@ -14,6 +14,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
   const [version, setVersion] = useState("");
   const [memoryMB, setMemoryMB] = useState(2048);
   const [backupPath, setBackupPath] = useState("");
+  const [agreeEula, setAgreeEula] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingVersions, setFetchingVersions] = useState(true);
   const [error, setError] = useState("");
@@ -53,10 +54,14 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!agreeEula) {
+      setError("You must agree to the Minecraft EULA to create a server.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      await createServer({ name, type: type as ServerType, version, memoryMB: Number(memoryMB), backupPath });
+      await createServer({ name, type: type as ServerType, version, memoryMB: Number(memoryMB), backupPath, agreeEula });
       refreshServers();
       setActiveTab("instances");
     } catch (err: any) {
@@ -250,11 +255,39 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
             </p>
           </div>
 
-          {/* Submit */}
+          <div className="form-group" style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.25rem 0" }}>
+            <input
+              id="agreeEula"
+              type="checkbox"
+              checked={agreeEula}
+              onChange={(e) => setAgreeEula(e.target.checked)}
+              style={{
+                marginTop: "0.25rem",
+                width: "18px",
+                height: "18px",
+                cursor: "pointer",
+                accentColor: "var(--btn-primary-inner-color)",
+              }}
+            />
+            <label htmlFor="agreeEula" style={{ fontSize: "0.9rem", color: "var(--text-color)", cursor: "pointer", lineHeight: "1.4" }}>
+              I agree to the <a href="https://www.minecraft.net/eula" target="_blank" rel="noopener noreferrer" style={{ color: "var(--btn-primary-inner-color)", textDecoration: "underline" }}>Minecraft End User License Agreement (EULA)</a> to create this server.
+            </label>
+          </div>
+
           <button
             type="submit"
             className="button-primary"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", padding: "0.75rem", margin: 0 }}
+            disabled={!agreeEula}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              padding: "0.75rem",
+              margin: 0,
+              opacity: agreeEula ? 1 : 0.5,
+              cursor: agreeEula ? "pointer" : "not-allowed",
+            }}
           >
             <Download size={16} /> Download and Create Server
           </button>

@@ -151,6 +151,7 @@ export namespace servermanager {
 	    type: string;
 	    memoryMB: number;
 	    backupPath: string;
+	    agreeEula: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new CreateServerPayload(source);
@@ -163,6 +164,7 @@ export namespace servermanager {
 	        this.type = source["type"];
 	        this.memoryMB = source["memoryMB"];
 	        this.backupPath = source["backupPath"];
+	        this.agreeEula = source["agreeEula"];
 	    }
 	}
 	export class ImportServerPayload {
@@ -209,6 +211,8 @@ export namespace servermanager {
 	    port: number;
 	    watchdog: boolean;
 	    backupPath: string;
+	    playitEnabled: boolean;
+	    playitAddress: string;
 	    modpack?: ModpackMeta;
 	
 	    static createFrom(source: any = {}) {
@@ -230,6 +234,8 @@ export namespace servermanager {
 	        this.port = source["port"];
 	        this.watchdog = source["watchdog"];
 	        this.backupPath = source["backupPath"];
+	        this.playitEnabled = source["playitEnabled"];
+	        this.playitAddress = source["playitAddress"];
 	        this.modpack = this.convertValues(source["modpack"], ModpackMeta);
 	    }
 	
@@ -262,6 +268,7 @@ export namespace servermanager {
 	    version: string;
 	    type: string;
 	    backupPath: string;
+	    playitEnabled: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateConfigPayload(source);
@@ -279,6 +286,7 @@ export namespace servermanager {
 	        this.version = source["version"];
 	        this.type = source["type"];
 	        this.backupPath = source["backupPath"];
+	        this.playitEnabled = source["playitEnabled"];
 	    }
 	}
 
@@ -288,6 +296,8 @@ export namespace utils {
 	
 	export class AppSettings {
 	    curseForgeApiKey: string;
+	    serversDir: string;
+	    setupComplete: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppSettings(source);
@@ -296,6 +306,8 @@ export namespace utils {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.curseForgeApiKey = source["curseForgeApiKey"];
+	        this.serversDir = source["serversDir"];
+	        this.setupComplete = source["setupComplete"];
 	    }
 	}
 	export class JavaInstall {

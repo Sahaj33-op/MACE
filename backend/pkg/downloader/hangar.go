@@ -9,7 +9,7 @@ import (
 
 const hangarAPIBase = "https://hangar.papermc.io/api/v1"
 
-// --- Hangar API response types ---
+
 
 type hangarProjectsResponse struct {
 	Result []hangarProject `json:"result"`
@@ -38,7 +38,7 @@ type hangarSettings struct {
 	Tags []string `json:"tags"`
 }
 
-// --- Hangar version response types ---
+
 
 type hangarVersionsResponse struct {
 	Result []hangarVersion `json:"result"`
@@ -59,7 +59,7 @@ type hangarFileInfo struct {
 	SizeBytes int64 `json:"sizeBytes"`
 }
 
-// --- Exported result types ---
+
 
 // HangarSearchResult is the exported format returned to the IPC layer.
 type HangarSearchResult struct {
@@ -176,11 +176,9 @@ func ResolveHangarVersion(slug, mcVersion string) (*HangarVersionInfo, error) {
 
 	ver := versionsResp.Result[0]
 
-	// Look for PAPER platform download
 	if dl, ok := ver.Downloads["PAPER"]; ok {
 		downloadURL := dl.DownloadURL
 		if downloadURL == "" {
-			// Construct direct download URL
 			downloadURL = fmt.Sprintf("%s/projects/%s/versions/%s/PAPER/download", hangarAPIBase, slug, ver.Name)
 		}
 		return &HangarVersionInfo{
@@ -190,7 +188,6 @@ func ResolveHangarVersion(slug, mcVersion string) (*HangarVersionInfo, error) {
 		}, nil
 	}
 
-	// Fallback: use the constructed download URL
 	downloadURL := fmt.Sprintf("%s/projects/%s/versions/%s/PAPER/download", hangarAPIBase, slug, ver.Name)
 	return &HangarVersionInfo{
 		VersionName: ver.Name,

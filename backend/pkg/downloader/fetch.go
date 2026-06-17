@@ -46,7 +46,6 @@ func (lw *logWriter) Write(p []byte) (int, error) {
 
 // DownloadJar downloads a URL and writes it to the output file path.
 func DownloadJar(id string, url string, output string) error {
-	// Ensure parent directory exists
 	if err := utils.EnsureDir(filepath.Dir(output)); err != nil {
 		return err
 	}
@@ -89,7 +88,6 @@ func InstallServer(id string, serverType string, version string, installDir stri
 		return err
 	}
 
-	// Create a temp folder for installers if needed
 	tempDir := filepath.Join(installDir, "..", "..", "temp")
 	if err := utils.EnsureDir(tempDir); err != nil {
 		return err
@@ -113,7 +111,6 @@ func InstallServer(id string, serverType string, version string, installDir stri
 		return DownloadJar(id, url, jarPath)
 
 	case "fabric":
-		// 1. Download fabric-installer.jar
 		instVer, err := FetchLatestFabricInstaller()
 		if err != nil {
 			return err
@@ -127,7 +124,6 @@ func InstallServer(id string, serverType string, version string, installDir stri
 			}
 		}
 
-		// 2. Run fabric-installer in server mode
 		cmd := exec.Command(javaPath, "-jar", installerJar, "server", "-mcversion", version, "-downloadMinecraft")
 		utils.HideWindow(cmd)
 		cmd.Dir = installDir
@@ -138,26 +134,22 @@ func InstallServer(id string, serverType string, version string, installDir stri
 			return fmt.Errorf("fabric installer failed: %v", err)
 		}
 
-		// 3. Configure Fabric launcher properties so we can rename fabric-server-launch.jar to server.jar
 		propertiesContent := "serverJar=vanilla-server.jar\n"
 		propPath := filepath.Join(installDir, "fabric-server-launcher.properties")
 		if err := os.WriteFile(propPath, []byte(propertiesContent), 0644); err != nil {
 			return err
 		}
 
-		// Rename server.jar (which installer downloaded) to vanilla-server.jar
 		oldServerJar := filepath.Join(installDir, "server.jar")
 		newServerJar := filepath.Join(installDir, "vanilla-server.jar")
 		if err := os.Rename(oldServerJar, newServerJar); err != nil {
 			return err
 		}
 
-		// Rename fabric-server-launch.jar to server.jar
 		fabricLaunchJar := filepath.Join(installDir, "fabric-server-launch.jar")
 		return os.Rename(fabricLaunchJar, oldServerJar)
 
 	case "quilt":
-		// 1. Download quilt-installer.jar
 		instVer, err := FetchLatestQuiltInstaller()
 		if err != nil {
 			return err
@@ -171,7 +163,6 @@ func InstallServer(id string, serverType string, version string, installDir stri
 			}
 		}
 
-		// 2. Run quilt-installer
 		cmd := exec.Command(javaPath, "-jar", installerJar, "install", "server", version, "--download-server")
 		utils.HideWindow(cmd)
 		cmd.Dir = installDir
@@ -182,30 +173,22 @@ func InstallServer(id string, serverType string, version string, installDir stri
 			return fmt.Errorf("quilt installer failed: %v", err)
 		}
 
-		// 3. Configure Quilt launcher properties
 		propertiesContent := "serverJar=vanilla-server.jar\n"
 		propPath := filepath.Join(installDir, "quilt-server-launcher.properties")
 		if err := os.WriteFile(propPath, []byte(propertiesContent), 0644); err != nil {
 			return err
 		}
 
-		// Rename server.jar to vanilla-server.jar
 		oldServerJar := filepath.Join(installDir, "server.jar")
 		newServerJar := filepath.Join(installDir, "vanilla-server.jar")
 		if err := os.Rename(oldServerJar, newServerJar); err != nil {
 			return err
 		}
 
-		// Rename quilt-server-launch-jar to server.jar
 		quiltLaunchJar := filepath.Join(installDir, "quilt-server-launch.jar")
 		return os.Rename(quiltLaunchJar, oldServerJar)
 
 	case "forge":
-		// Forge installer downloading and running
-		// Note: Forge version naming can be complex. We'll download a default forge installer URL
-		// or fetch it from Forge promotions. For now, let's query the recommended Forge version for the MC version.
-		// If we can't find it easily, we can use a mirror or fallback.
-		// Let's implement a download helper.
 		forgeVersion := getForgeVersionForMC(version)
 		if forgeVersion == "" {
 			return fmt.Errorf("unsupported forge version for minecraft %s", version)
@@ -230,7 +213,6 @@ func InstallServer(id string, serverType string, version string, installDir stri
 			return fmt.Errorf("forge installer failed: %v", err)
 		}
 
-		// For older Forge versions, it creates a forge-{version}.jar. Let's rename it to server.jar if it exists.
 		files, _ := os.ReadDir(installDir)
 		for _, f := range files {
 			if !f.IsDir() && filepath.Ext(f.Name()) == ".jar" && filepath.Base(f.Name()) != "server.jar" {
@@ -281,18 +263,15 @@ func getForgeVersionForMC(mcVersion string) string {
 			Promos map[string]string `json:"promos"`
 		}
 		if json.NewDecoder(resp.Body).Decode(&data) == nil {
-			// Try recommended first
 			if ver, ok := data.Promos[mcVersion+"-recommended"]; ok {
 				return ver
 			}
-			// Fall back to latest
 			if ver, ok := data.Promos[mcVersion+"-latest"]; ok {
 				return ver
 			}
 		}
 	}
 
-	// A simple mapping of popular MC versions to stable/recommended Forge versions.
 	mapping := map[string]string{
 		"1.20.4": "49.0.22",
 		"1.20.2": "48.0.30",
@@ -307,6 +286,5 @@ func getForgeVersionForMC(mcVersion string) string {
 	if ver, ok := mapping[mcVersion]; ok {
 		return ver
 	}
-	// Fallback to a common pattern or latest for newer
 	return "47.2.0" 
 }

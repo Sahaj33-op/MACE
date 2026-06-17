@@ -26,11 +26,9 @@ func IsRunning(id string) bool {
 	if !ok || cmd == nil {
 		return false
 	}
-	// Check if process has finished
 	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
 		return false
 	}
-	// Check if we can find the process (on Windows, standard check)
 	if cmd.Process != nil {
 		return true
 	}
@@ -38,7 +36,7 @@ func IsRunning(id string) bool {
 }
 
 // StartServer launches the Minecraft server jar/scripts.
-func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
+func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, playitEnabled bool, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
 	if IsRunning(id) {
 		return "running", nil
 	}
@@ -46,18 +44,15 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	processesMu.Lock()
 	defer processesMu.Unlock()
 
-	// Clear logs of previous session
 	ClearLogs(id)
 
 	var cmd *exec.Cmd
 
-	// Accept Minecraft EULA automatically if not present
 	eulaFile := filepath.Join(dir, "eula.txt")
 	if _, err := os.Stat(eulaFile); os.IsNotExist(err) {
 		os.WriteFile(eulaFile, []byte("eula=true\n"), 0644)
 	}
 
-	// Check if modern Forge run script exists
 	var useScript bool
 	var scriptPath string
 	if runtime.GOOS == "windows" {
@@ -73,14 +68,11 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	}
 
 	if useScript {
-		// Modern Forge (1.17+) uses launch scripts.
-		// Set memory configuration in user_jvm_args.txt
 		jvmArgsFile := filepath.Join(dir, "user_jvm_args.txt")
 		jvmArgsContent := fmt.Sprintf("-Xmx%dM\n-Xms%dM\n", memoryMB, memoryMB)
 		os.WriteFile(jvmArgsFile, []byte(jvmArgsContent), 0644)
 
 		if runtime.GOOS == "windows" {
-			// Extract java arguments from run.bat to avoid cmd.exe swallowing stdin
 			batData, err := os.ReadFile(scriptPath)
 			if err == nil {
 				lines := strings.Split(string(batData), "\n")
@@ -111,7 +103,6 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 			cmd = exec.Command("sh", "run.sh")
 		}
 	} else {
-		// Classic server.jar execution
 		args := []string{
 			fmt.Sprintf("-Xmx%dM", memoryMB),
 			fmt.Sprintf("-Xms%dM", memoryMB),
@@ -122,14 +113,12 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 
 	cmd.Dir = dir
 
-	// Setup stdin
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return "", fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
 	RegisterStdin(id, stdin)
 
-	// Setup stdout/stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		UnregisterStdin(id)
@@ -141,14 +130,11 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 		return "", fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
-	// Capture outputs in goroutines
 	go CaptureConsole(id, stdout)
 	go CaptureConsole(id, stderr)
 
-	// Hide window on Windows
 	utils.HideWindow(cmd)
 
-	// Start the command
 	if err := cmd.Start(); err != nil {
 		UnregisterStdin(id)
 		return "", fmt.Errorf("failed to start process: %w", err)
@@ -157,8 +143,15 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	processes[id] = cmd
 	startTimes[id] = time.Now()
 
-	// Start Watchdog monitor
-	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, statusCallback, crashCallback)
+	if false && playitEnabled {
+		go func() {
+			if err := StartPlayit(id, dir); err != nil {
+				WriteLog(id, "[MACE] [PLAYIT] Failed to start playit: "+err.Error())
+			}
+		}()
+	}
+
+	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, statusCallback, crashCallback)
 
 	return "started", nil
 }
@@ -169,11 +162,11 @@ func StopServer(id string) (string, error) {
 		return "stopped", nil
 	}
 
-	// Send "stop" command to Minecraft server stdin
+	StopPlayit(id)
+
 	WriteLog(id, "[MACE] Sending stop command to server...")
 	err := WriteCommand(id, "stop")
 	if err != nil {
-		// Fallback to killing process if stdin write fails
 		WriteLog(id, "[MACE] Stdin stop failed, forcing process termination...")
 		return KillServer(id)
 	}
@@ -186,6 +179,8 @@ func KillServer(id string) (string, error) {
 	processesMu.Lock()
 	cmd, ok := processes[id]
 	processesMu.Unlock()
+
+	StopPlayit(id)
 
 	if !ok || cmd == nil || cmd.Process == nil {
 		return "stopped", nil
@@ -206,4 +201,5 @@ func DeregisterProcess(id string) {
 	delete(startTimes, id)
 	processesMu.Unlock()
 	UnregisterStdin(id)
+	StopPlayit(id)
 }
