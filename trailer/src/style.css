@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap');
+
+:root {
+  --bg-gradient: radial-gradient(ellipse 120% 80% at 50% 50%, #0f172a 0%, #020617 100%);
+  --bg-dark-900: #020617;
+  --bg-dark-800: #0f172a;
+  --bg-dark-700: #1e293b;
+  --primary: #10b981;
+  --primary-glow: rgba(16, 185, 129, 0.45);
+  --primary-deep: #059669;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.35);
+  --violet: #a78bfa;
+  --violet-glow: rgba(167, 139, 250, 0.3);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --border-glass: rgba(255, 255, 255, 0.07);
+  --border-glass-bright: rgba(255, 255, 255, 0.14);
+  --bg-glass: rgba(15, 23, 42, 0.72);
+  --bg-glass-darker: rgba(2, 6, 23, 0.85);
+  --shadow-premium: 0 32px 64px -16px rgba(0, 0, 0, 0.65),
+                     0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-dark-900);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Glassmorphic Panels ─── */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid var(--border-glass);
+  border-radius: 24px;
+  box-shadow: var(--shadow-premium);
+  padding: 40px;
+  overflow: hidden;
+  position: relative;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+}
+
+/* ─── Typography ─── */
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
+.title-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+.emerald-gradient-text {
+  background: linear-gradient(135deg, #6ee7b7 0%, #10b981 50%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── OS Window Frame ─── */
+.os-window {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55),
+              0 0 0 1px rgba(255, 255, 255, 0.06),
+              0 0 80px rgba(16, 185, 129, 0.06);
+  background: #161b2e;
+  position: relative;
+}
+
+.window-header {
+  height: 40px;
+  background: linear-gradient(180deg, #1a1f35 0%, #12162a 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.window-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.window-dot.red { background: #ff5f57; box-shadow: 0 0 6px rgba(255, 95, 87, 0.3); }
+.window-dot.yellow { background: #febc2e; box-shadow: 0 0 6px rgba(254, 188, 46, 0.3); }
+.window-dot.green { background: #28c840; box-shadow: 0 0 6px rgba(40, 200, 64, 0.3); }
+
+.window-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+  margin-right: auto;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* ─── Terminal ─── */
+.terminal-window {
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  background: linear-gradient(180deg, #080c18 0%, #060a14 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.7),
+              0 12px 36px rgba(0, 0, 0, 0.5);
+  padding: 18px 20px;
+  color: #a7f3d0;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Scanline overlay */
+.terminal-window::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+}
+
+.terminal-line {
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminal-success { color: #34d399; text-shadow: 0 0 8px rgba(52, 211, 153, 0.2); }
+.terminal-error { color: #fb7185; font-weight: 600; text-shadow: 0 0 8px rgba(251, 113, 133, 0.2); }
+.terminal-warn { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.15); }
+.terminal-info { color: #60a5fa; }
+
+/* ─── Simulated Pointer & Ripple ─── */
+.click-ripple {
+  position: absolute;
+  border: 2px solid var(--primary);
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* ─── Glow Orbs ─── */
+.glow-effect {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-glow) 0%, rgba(16, 185, 129, 0) 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  mix-blend-mode: screen;
+}
+
+.glow-blue {
+  background: radial-gradient(circle, var(--accent-glow) 0%, rgba(56, 189, 248, 0) 70%);
+}
+
+.glow-violet {
+  background: radial-gradient(circle, var(--violet-glow) 0%, rgba(167, 139, 250, 0) 70%);
+}
+
+/* ─── Feature Badge ─── */
+.feature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ─── Noise Texture Overlay ─── */
+.noise-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* ─── Vignette ─── */
+.vignette {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse 70% 60% at center, transparent 0%, rgba(2, 6, 23, 0.5) 100%);
+  pointer-events: none;
+}

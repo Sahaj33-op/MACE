@@ -45,3 +45,8 @@ yarn-error.log*
 # Mace Specific Directories
 servers/
 temp/
+
+# Trailer
+trailer/node_modules/
+trailer/dist/
+trailer/dist-ssr/

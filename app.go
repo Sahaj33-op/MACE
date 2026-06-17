@@ -45,6 +45,14 @@ func (a *App) startup(ctx context.Context) {
 	launcher.PlayerUpdateCallback = func(id string, players []string) {
 		runtime.EventsEmit(a.ctx, "players-updated-"+id, players)
 	}
+	launcher.PlayitAddressCallback = func(id string, address string) {
+		inst, err := servermanager.LoadServer(id)
+		if err == nil {
+			inst.PlayitAddress = address
+			servermanager.SaveServer(inst)
+			runtime.EventsEmit(a.ctx, "playit-address-updated-"+id, address)
+		}
+	}
 }
 
 // domReady is called when the DOM is fully loaded
@@ -417,6 +425,26 @@ func (a *App) InstallSpigetPlugin(serverID string, resourceID int64) (*serverman
 	}
 
 	return servermanager.DownloadAndInstallMod(serverID, downloadURL, fileName, "plugin")
+}
+
+// GetPlayitStatus retrieves the running state, claim URL, and assigned address of the playit tunnel.
+func (a *App) GetPlayitStatus(id string) (map[string]interface{}, error) {
+	inst, err := servermanager.LoadServer(id)
+	if err != nil {
+		return nil, err
+	}
+
+	isRunning, claimURL, address := launcher.GetPlayitStatusInfo(id)
+	if address == "" && inst.PlayitAddress != "" {
+		address = inst.PlayitAddress
+	}
+
+	return map[string]interface{}{
+		"playitEnabled": inst.PlayitEnabled,
+		"isRunning":     isRunning,
+		"claimUrl":      claimURL,
+		"address":       address,
+	}, nil
 }
 
 // --- App Settings ---

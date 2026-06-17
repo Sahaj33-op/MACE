@@ -90,6 +90,10 @@ export function GetPlayerRoles(arg1) {
   return window['go']['main']['App']['GetPlayerRoles'](arg1);
 }
 
+export function GetPlayitStatus(arg1) {
+  return window['go']['main']['App']['GetPlayitStatus'](arg1);
+}
+
 export function GetServerProperties(arg1) {
   return window['go']['main']['App']['GetServerProperties'](arg1);
 }

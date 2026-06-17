@@ -13,20 +13,22 @@ const (
 )
 
 type ServerInstance struct {
-	ID         string       `json:"id"`
-	Name       string       `json:"name"`
-	Version    string       `json:"version"`
-	Type       ServerType   `json:"type"`
-	Path       string       `json:"path"`
-	Status     string       `json:"status"`
-	JavaPath   string       `json:"javaPath"`
-	MemoryMB   int          `json:"memoryMB"`
-	World      string       `json:"world"`
-	IPAddress  string       `json:"ipAddress"`
-	Port       int          `json:"port"`
-	Watchdog   bool         `json:"watchdog"`
-	BackupPath string       `json:"backupPath"`
-	Modpack    *ModpackMeta `json:"modpack,omitempty"`
+	ID            string       `json:"id"`
+	Name          string       `json:"name"`
+	Version       string       `json:"version"`
+	Type          ServerType   `json:"type"`
+	Path          string       `json:"path"`
+	Status        string       `json:"status"`
+	JavaPath      string       `json:"javaPath"`
+	MemoryMB      int          `json:"memoryMB"`
+	World         string       `json:"world"`
+	IPAddress     string       `json:"ipAddress"`
+	Port          int          `json:"port"`
+	Watchdog      bool         `json:"watchdog"`
+	BackupPath    string       `json:"backupPath"`
+	PlayitEnabled bool         `json:"playitEnabled"`
+	PlayitAddress string       `json:"playitAddress"`
+	Modpack       *ModpackMeta `json:"modpack,omitempty"`
 }
 
 // ContentItem represents a single mod or plugin JAR inside a server directory.
@@ -75,16 +77,17 @@ type ImportServerPayload struct {
 
 
 type UpdateConfigPayload struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	JavaPath   string `json:"javaPath"`
-	MemoryMB   int    `json:"memoryMB"`
-	Port       int    `json:"port"`
-	Watchdog   bool   `json:"watchdog"`
-	RawProps   string `json:"rawProps"`
-	Version    string `json:"version"`
-	Type       string `json:"type"`
-	BackupPath string `json:"backupPath"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	JavaPath      string `json:"javaPath"`
+	MemoryMB      int    `json:"memoryMB"`
+	Port          int    `json:"port"`
+	Watchdog      bool   `json:"watchdog"`
+	RawProps      string `json:"rawProps"`
+	Version       string `json:"version"`
+	Type          string `json:"type"`
+	BackupPath    string `json:"backupPath"`
+	PlayitEnabled bool   `json:"playitEnabled"`
 }
 
 // BackupItem represents a single backup archive.

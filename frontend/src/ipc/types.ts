@@ -20,6 +20,8 @@ export interface ServerInstance {
   port: number;
   watchdog: boolean;
   backupPath: string;
+  playitEnabled: boolean;
+  playitAddress: string;
   modpack?: ModpackMeta;
 }
 

@@ -36,7 +36,7 @@ func IsRunning(id string) bool {
 }
 
 // StartServer launches the Minecraft server jar/scripts.
-func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
+func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, playitEnabled bool, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
 	if IsRunning(id) {
 		return "running", nil
 	}
@@ -143,7 +143,15 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	processes[id] = cmd
 	startTimes[id] = time.Now()
 
-	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, statusCallback, crashCallback)
+	if false && playitEnabled {
+		go func() {
+			if err := StartPlayit(id, dir); err != nil {
+				WriteLog(id, "[MACE] [PLAYIT] Failed to start playit: "+err.Error())
+			}
+		}()
+	}
+
+	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, statusCallback, crashCallback)
 
 	return "started", nil
 }
@@ -153,6 +161,8 @@ func StopServer(id string) (string, error) {
 	if !IsRunning(id) {
 		return "stopped", nil
 	}
+
+	StopPlayit(id)
 
 	WriteLog(id, "[MACE] Sending stop command to server...")
 	err := WriteCommand(id, "stop")
@@ -169,6 +179,8 @@ func KillServer(id string) (string, error) {
 	processesMu.Lock()
 	cmd, ok := processes[id]
 	processesMu.Unlock()
+
+	StopPlayit(id)
 
 	if !ok || cmd == nil || cmd.Process == nil {
 		return "stopped", nil
@@ -189,4 +201,5 @@ func DeregisterProcess(id string) {
 	delete(startTimes, id)
 	processesMu.Unlock()
 	UnregisterStdin(id)
+	StopPlayit(id)
 }

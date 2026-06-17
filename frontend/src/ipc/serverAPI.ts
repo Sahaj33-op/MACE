@@ -35,7 +35,14 @@ declare global {
             version: string;
             type: string;
             backupPath: string;
+            playitEnabled: boolean;
           }): Promise<void>;
+          GetPlayitStatus(id: string): Promise<{
+            playitEnabled: boolean;
+            isRunning: boolean;
+            claimUrl: string;
+            address: string;
+          }>;
           DetectJava(): Promise<JavaInstall[]>;
           GetAvailableVersions(): Promise<Record<string, string[]>>;
           GetServerResources(id: string): Promise<{ cpuPercent: number; memoryMB: number; uptime: number }>;
@@ -152,9 +159,26 @@ export async function updateServerConfig(payload: {
   version: string;
   type: string;
   backupPath: string;
+  playitEnabled: boolean;
 }): Promise<{ result: string }> {
   await window.go.main.App.UpdateServerConfig(payload);
   return { result: "updated" };
+}
+
+export async function getPlayitStatus(id: string): Promise<{
+  playitEnabled: boolean;
+  isRunning: boolean;
+  claimUrl: string;
+  address: string;
+}> {
+  return window.go.main.App.GetPlayitStatus(id);
+}
+
+export function onPlayitAddressUpdated(id: string, callback: (address: string) => void): () => void {
+  if (window.runtime && window.runtime.EventsOn) {
+    return window.runtime.EventsOn(`playit-address-updated-${id}`, callback);
+  }
+  return () => {};
 }
 
 export async function deleteServer(id: string): Promise<{ result: string }> {

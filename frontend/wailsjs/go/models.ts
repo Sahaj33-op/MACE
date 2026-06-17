@@ -211,6 +211,8 @@ export namespace servermanager {
 	    port: number;
 	    watchdog: boolean;
 	    backupPath: string;
+	    playitEnabled: boolean;
+	    playitAddress: string;
 	    modpack?: ModpackMeta;
 	
 	    static createFrom(source: any = {}) {
@@ -232,6 +234,8 @@ export namespace servermanager {
 	        this.port = source["port"];
 	        this.watchdog = source["watchdog"];
 	        this.backupPath = source["backupPath"];
+	        this.playitEnabled = source["playitEnabled"];
+	        this.playitAddress = source["playitAddress"];
 	        this.modpack = this.convertValues(source["modpack"], ModpackMeta);
 	    }
 	
@@ -264,6 +268,7 @@ export namespace servermanager {
 	    version: string;
 	    type: string;
 	    backupPath: string;
+	    playitEnabled: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateConfigPayload(source);
@@ -281,6 +286,7 @@ export namespace servermanager {
 	        this.version = source["version"];
 	        this.type = source["type"];
 	        this.backupPath = source["backupPath"];
+	        this.playitEnabled = source["playitEnabled"];
 	    }
 	}
 

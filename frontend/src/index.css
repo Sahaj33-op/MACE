@@ -152,3 +152,100 @@ button {
 .button-secondary, .button-tertiary {
   padding: 0.6rem 1rem;
 }
+
+/* ===== Global Native Form Element Styling ===== */
+/* Fixes pitch-black inputs / selects / textareas by giving them a readable dark-glass look */
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="search"],
+textarea,
+select {
+  background-color: #1c1d20;
+  color: #e0e0e2;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(100, 200, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(100, 200, 255, 0.12);
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="password"]:hover,
+input[type="email"]:hover,
+textarea:hover,
+select:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Chrome number input arrow colour fix */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
+/* Select arrow is dark by default on Windows — force light */
+select {
+  appearance: auto;
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+/* Textarea */
+textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.65;
+}
+
+/* Placeholder text colour */
+::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Glass Panel ===== */
+/* Used for settings / editor panels */
+
+.glass-panel {
+  background: rgba(20, 21, 24, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+}
+
+/* ===== Spin animation for loading spinners ===== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== CSS variables exposed for components ===== */
+:root {
+  --border-glass: rgba(255, 255, 255, 0.09);
+  --text-muted: rgba(255, 255, 255, 0.42);
+  --primary-light: #64c8ff;
+  --success-color: #00e676;
+  --warning-color: #ffaa00;
+  --error-color: #ff5252;
+  --font-mono: "Courier New", Courier, monospace;
+}

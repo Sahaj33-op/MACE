@@ -48,6 +48,8 @@ export function GetDefaultServersDir():Promise<string>;
 
 export function GetPlayerRoles(arg1:string):Promise<Record<string, any>>;
 
+export function GetPlayitStatus(arg1:string):Promise<Record<string, any>>;
+
 export function GetServerProperties(arg1:string):Promise<string>;
 
 export function GetServerResources(arg1:string):Promise<Record<string, any>>;

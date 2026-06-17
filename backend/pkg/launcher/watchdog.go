@@ -14,6 +14,7 @@ func RunWatchdog(
 	javaPath string, 
 	memoryMB int, 
 	watchdogEnabled bool, 
+	playitEnabled bool, 
 	statusCallback func(string, string),
 	crashCallback func(string, string, string),
 ) {
@@ -44,7 +45,7 @@ func RunWatchdog(
 		WriteLog(id, "[MACE] Watchdog: Crash detected! Auto-restarting server in 5 seconds...")
 		time.Sleep(5 * time.Second)
 
-		_, err := StartServer(id, dir, javaPath, memoryMB, watchdogEnabled, statusCallback, crashCallback)
+		_, err := StartServer(id, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, statusCallback, crashCallback)
 		if err != nil {
 			WriteLog(id, fmt.Sprintf("[MACE] Watchdog: Auto-restart failed: %v", err))
 			statusCallback(id, "offline")

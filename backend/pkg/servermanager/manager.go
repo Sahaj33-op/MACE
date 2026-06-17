@@ -24,42 +24,6 @@ var (
 	CrashCallback func(id string, reason string, resolution string)
 )
 
-// Helper to resolve the root servers directory dynamically
-func GetServerRoot() string {
-	// If the user has configured a custom servers directory, use it.
-	if s, err := utils.LoadSettings(); err == nil && s.ServersDir != "" {
-		utils.EnsureDir(s.ServersDir)
-		abs, _ := filepath.Abs(s.ServersDir)
-		return abs
-	}
-
-	if _, err := os.Stat("servers"); err == nil {
-		abs, _ := filepath.Abs("servers")
-		return abs
-	}
-	if _, err := os.Stat("../servers"); err == nil {
-		abs, _ := filepath.Abs("../servers")
-		return abs
-	}
-	if _, err := os.Stat("../../../servers"); err == nil {
-		abs, _ := filepath.Abs("../../../servers")
-		return abs
-	}
-	cwd, _ := os.Getwd()
-	if filepath.Base(cwd) == "backend" || filepath.Base(cwd) == "cmd" || filepath.Base(cwd) == "mace" {
-		dir := filepath.Join(cwd, "..", "servers")
-		if filepath.Base(cwd) == "mace" {
-			dir = filepath.Join(cwd, "..", "..", "..", "servers")
-		}
-		utils.EnsureDir(dir)
-		abs, _ := filepath.Abs(dir)
-		return abs
-	}
-	dir := "./servers"
-	utils.EnsureDir(dir)
-	abs, _ := filepath.Abs(dir)
-	return abs
-}
 
 func getStatus(id string) string {
 	statusesMu.RLock()
@@ -78,7 +42,7 @@ func setStatus(id string, status string) {
 
 // LoadServer loads instance metadata from disk.
 func LoadServer(id string) (*ServerInstance, error) {
-	metaFile := filepath.Join(GetServerRoot(), id, "metadata.json")
+	metaFile := filepath.Join(utils.GetServerRoot(), id, "metadata.json")
 	if !utils.FileExists(metaFile) {
 		return nil, fmt.Errorf("server %s metadata not found", id)
 	}
@@ -107,7 +71,7 @@ func LoadServer(id string) (*ServerInstance, error) {
 
 // SaveServer saves instance metadata to disk.
 func SaveServer(inst *ServerInstance) error {
-	dir := filepath.Join(GetServerRoot(), inst.ID)
+	dir := filepath.Join(utils.GetServerRoot(), inst.ID)
 	if err := utils.EnsureDir(dir); err != nil {
 		return err
 	}
@@ -123,7 +87,7 @@ func SaveServer(inst *ServerInstance) error {
 
 // ListServers scans the servers directory and loads all metadata.
 func ListServers() ([]ServerInstance, error) {
-	root := GetServerRoot()
+	root := utils.GetServerRoot()
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err
@@ -163,7 +127,7 @@ func CreateServer(payload CreateServerPayload) (*ServerInstance, error) {
 	}
 	id := fmt.Sprintf("%s-%d", sb.String(), time.Now().Unix()%100000)
 
-	serverDir := filepath.Join(GetServerRoot(), id)
+	serverDir := filepath.Join(utils.GetServerRoot(), id)
 	if err := utils.EnsureDir(serverDir); err != nil {
 		return nil, err
 	}
@@ -427,7 +391,7 @@ func StartServer(id string) (string, error) {
 	}
 
 	setStatus(id, "starting")
-	state, err := launcher.StartServer(inst.ID, inst.Path, inst.JavaPath, inst.MemoryMB, inst.Watchdog, statusCallback, CrashCallback)
+	state, err := launcher.StartServer(inst.ID, inst.Path, inst.JavaPath, inst.MemoryMB, inst.Watchdog, inst.PlayitEnabled, statusCallback, CrashCallback)
 	if err != nil {
 		setStatus(id, "offline")
 		return "", err
@@ -486,6 +450,7 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 	inst.Port = payload.Port
 	inst.Watchdog = payload.Watchdog
 	inst.BackupPath = payload.BackupPath
+	inst.PlayitEnabled = payload.PlayitEnabled
 	if payload.Version != "" {
 		inst.Version = payload.Version
 	}
@@ -515,7 +480,7 @@ func DeleteServer(id string) error {
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	managedPath := filepath.Clean(filepath.Join(GetServerRoot(), id))
+	managedPath := filepath.Clean(filepath.Join(utils.GetServerRoot(), id))
 	if filepath.Clean(inst.Path) == managedPath {
 		return os.RemoveAll(inst.Path)
 	}

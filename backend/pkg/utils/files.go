@@ -47,3 +47,40 @@ func CopyFile(src, dst string) error {
 	}
 	return out.Sync()
 }
+
+// GetServerRoot resolves the root servers directory dynamically.
+func GetServerRoot() string {
+	if s, err := LoadSettings(); err == nil && s.ServersDir != "" {
+		EnsureDir(s.ServersDir)
+		abs, _ := filepath.Abs(s.ServersDir)
+		return abs
+	}
+
+	if _, err := os.Stat("servers"); err == nil {
+		abs, _ := filepath.Abs("servers")
+		return abs
+	}
+	if _, err := os.Stat("../servers"); err == nil {
+		abs, _ := filepath.Abs("../servers")
+		return abs
+	}
+	if _, err := os.Stat("../../../servers"); err == nil {
+		abs, _ := filepath.Abs("../../../servers")
+		return abs
+	}
+	cwd, _ := os.Getwd()
+	if filepath.Base(cwd) == "backend" || filepath.Base(cwd) == "cmd" || filepath.Base(cwd) == "mace" {
+		dir := filepath.Join(cwd, "..", "servers")
+		if filepath.Base(cwd) == "mace" {
+			dir = filepath.Join(cwd, "..", "..", "..", "servers")
+		}
+		EnsureDir(dir)
+		abs, _ := filepath.Abs(dir)
+		return abs
+	}
+	dir := "./servers"
+	EnsureDir(dir)
+	abs, _ := filepath.Abs(dir)
+	return abs
+}
+
