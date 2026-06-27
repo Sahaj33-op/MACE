@@ -45,6 +45,7 @@ yarn-error.log*
 # Mace Specific Directories
 servers/
 temp/
+settings.json
 
 # Trailer
 trailer/node_modules/

@@ -15,11 +15,14 @@ func RunWatchdog(
 	memoryMB int, 
 	watchdogEnabled bool, 
 	playitEnabled bool, 
+	jvmArgs string,
 	statusCallback func(string, string),
 	crashCallback func(string, string, string),
 ) {
 	err := cmd.Wait()
 	
+	userStop := IsUserStopped(id)
+
 	DeregisterProcess(id)
 	
 	exitCode := -1
@@ -28,6 +31,13 @@ func RunWatchdog(
 	}
 
 	WriteLog(id, fmt.Sprintf("[MACE] Server process terminated with exit code %d (err: %v)", exitCode, err))
+
+	if userStop {
+		statusCallback(id, "offline")
+		WriteLog(id, "[MACE] Server stopped by user.")
+		SetUserStopped(id, false)
+		return
+	}
 
 	if exitCode == 0 || exitCode == 130 {
 		statusCallback(id, "offline")
@@ -45,7 +55,7 @@ func RunWatchdog(
 		WriteLog(id, "[MACE] Watchdog: Crash detected! Auto-restarting server in 5 seconds...")
 		time.Sleep(5 * time.Second)
 
-		_, err := StartServer(id, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, statusCallback, crashCallback)
+		_, err := StartServer(id, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, jvmArgs, statusCallback, crashCallback)
 		if err != nil {
 			WriteLog(id, fmt.Sprintf("[MACE] Watchdog: Auto-restart failed: %v", err))
 			statusCallback(id, "offline")

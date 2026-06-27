@@ -7,7 +7,7 @@ export default function ImportServer({
   setActiveTab 
 }: { 
   refreshServers: () => void;
-  setActiveTab: (tab: "dashboard" | "instances" | "create" | "settings" | "import") => void;
+  setActiveTab: (tab: "dashboard" | "server-details" | "create" | "settings" | "import") => void;
 }) {
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
@@ -47,7 +47,7 @@ export default function ImportServer({
     try {
       await importServer({ path, name });
       refreshServers();
-      setActiveTab("instances");
+      setActiveTab("dashboard");
     } catch (err: any) {
       console.error("Failed to import server:", err);
       const msg = typeof err === "string" ? err : err.message;

@@ -234,20 +234,38 @@ func RestoreBackup(id string, backupName string) error {
 	oldWorldDir := filepath.Join(inst.Path, fmt.Sprintf("%s_pre_restore_%s", inst.World, timestamp))
 
 	if _, err := os.Stat(worldDir); err == nil {
-		if err := os.Rename(worldDir, oldWorldDir); err != nil {
+		if err := robustRename(worldDir, oldWorldDir); err != nil {
 			return fmt.Errorf("failed to archive current world before restore: %w", err)
+		}
+	} else {
+		if err := os.MkdirAll(oldWorldDir, 0755); err != nil {
+			return fmt.Errorf("failed to create pre-restore directory: %w", err)
+		}
+	}
+
+	// Also backup existing config files to the pre-restore directory
+	for _, cfgName := range configFiles {
+		cfgPath := filepath.Join(inst.Path, cfgName)
+		if utils.FileExists(cfgPath) {
+			robustRename(cfgPath, filepath.Join(oldWorldDir, cfgName))
 		}
 	}
 
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
-		if oldWorldDir != "" {
-			os.Rename(oldWorldDir, worldDir)
+		// Rollback immediately if we can't open the zip
+		for _, cfgName := range configFiles {
+			backupCfg := filepath.Join(oldWorldDir, cfgName)
+			if utils.FileExists(backupCfg) {
+				robustRename(backupCfg, filepath.Join(inst.Path, cfgName))
+			}
 		}
+		robustRename(oldWorldDir, worldDir)
 		return fmt.Errorf("failed to open backup archive: %w", err)
 	}
 	defer r.Close()
 
+	var restoreErr error
 	for _, f := range r.File {
 		destPath := filepath.Join(inst.Path, f.Name)
 
@@ -256,30 +274,60 @@ func RestoreBackup(id string, backupName string) error {
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(destPath, 0755)
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				restoreErr = fmt.Errorf("failed to create directory %s: %w", destPath, err)
+				break
+			}
 			continue
 		}
 
-		os.MkdirAll(filepath.Dir(destPath), 0755)
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			restoreErr = fmt.Errorf("failed to create parent directory for %s: %w", destPath, err)
+			break
+		}
 
 		rc, err := f.Open()
 		if err != nil {
-			continue
+			restoreErr = fmt.Errorf("failed to open zip file entry %s: %w", f.Name, err)
+			break
 		}
 
 		outFile, err := os.Create(destPath)
 		if err != nil {
 			rc.Close()
-			continue
+			restoreErr = fmt.Errorf("failed to create file %s: %w", destPath, err)
+			break
 		}
 
-		io.Copy(outFile, rc)
+		_, err = io.Copy(outFile, rc)
 		outFile.Close()
 		rc.Close()
+		if err != nil {
+			restoreErr = fmt.Errorf("failed to write file %s: %w", destPath, err)
+			break
+		}
+	}
+
+	if restoreErr != nil {
+		// Clean up partially extracted files
+		os.RemoveAll(worldDir)
+		for _, cfgName := range configFiles {
+			os.Remove(filepath.Join(inst.Path, cfgName))
+		}
+
+		// Roll back to the pre-restore backup
+		for _, cfgName := range configFiles {
+			backupCfg := filepath.Join(oldWorldDir, cfgName)
+			if utils.FileExists(backupCfg) {
+				robustRename(backupCfg, filepath.Join(inst.Path, cfgName))
+			}
+		}
+		robustRename(oldWorldDir, worldDir)
+
+		return restoreErr
 	}
 
 	os.RemoveAll(oldWorldDir)
-
 	launcher.WriteLog(id, fmt.Sprintf("[MACE] Backup restored successfully: %s", backupName))
 	return nil
 }
@@ -304,4 +352,16 @@ func DeleteBackup(id string, backupName string) error {
 	}
 
 	return os.Remove(zipPath)
+}
+
+func robustRename(src, dst string) error {
+	var err error
+	for i := 0; i < 15; i++ {
+		err = os.Rename(src, dst)
+		if err == nil {
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return err
 }

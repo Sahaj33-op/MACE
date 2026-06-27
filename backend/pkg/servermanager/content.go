@@ -320,6 +320,9 @@ func applyModrinthPack(r *zip.ReadCloser, serverPath string, inst *ServerInstanc
 			continue
 		}
 		destPath := filepath.Join(serverPath, filepath.FromSlash(file.Path))
+		if !strings.HasPrefix(filepath.Clean(destPath), filepath.Clean(serverPath)+string(os.PathSeparator)) {
+			return nil, fmt.Errorf("zip-slip attempt detected in file path: %s", file.Path)
+		}
 		os.MkdirAll(filepath.Dir(destPath), 0755)
 
 		if err := downloadFile(file.Downloads[0], destPath); err != nil {
@@ -333,6 +336,9 @@ func applyModrinthPack(r *zip.ReadCloser, serverPath string, inst *ServerInstanc
 		}
 		rel := strings.TrimPrefix(f.Name, "overrides/")
 		dest := filepath.Join(serverPath, filepath.FromSlash(rel))
+		if !strings.HasPrefix(filepath.Clean(dest), filepath.Clean(serverPath)+string(os.PathSeparator)) {
+			return nil, fmt.Errorf("zip-slip attempt detected in overrides: %s", f.Name)
+		}
 		os.MkdirAll(filepath.Dir(dest), 0755)
 
 		rc, err := f.Open()
@@ -362,7 +368,7 @@ func extractGenericPack(r *zip.ReadCloser, serverPath string) error {
 			continue
 		}
 		dest := filepath.Join(serverPath, filepath.FromSlash(f.Name))
-		if !strings.HasPrefix(filepath.Clean(dest), filepath.Clean(serverPath)) {
+		if !strings.HasPrefix(filepath.Clean(dest), filepath.Clean(serverPath)+string(os.PathSeparator)) {
 			continue
 		}
 		os.MkdirAll(filepath.Dir(dest), 0755)

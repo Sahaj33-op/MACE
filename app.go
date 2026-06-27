@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -108,6 +110,11 @@ func (a *App) StartServer(id string) (string, error) {
 // StopServer stops a server instance process.
 func (a *App) StopServer(id string) (string, error) {
 	return servermanager.StopServer(id)
+}
+
+// KillServer forcefully terminates a server instance process.
+func (a *App) KillServer(id string) (string, error) {
+	return servermanager.KillServer(id)
 }
 
 // RestartServer restarts a server instance process by stopping, waiting, and starting again.
@@ -457,6 +464,110 @@ func (a *App) GetAppSettings() (*utils.AppSettings, error) {
 // SaveAppSettings persists application settings to disk.
 func (a *App) SaveAppSettings(settings utils.AppSettings) error {
 	return utils.SaveSettings(&settings)
+}
+
+// PickServersDirectory opens a dialog to select a folder and returns it.
+func (a *App) PickServersDirectory() (string, error) {
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Server Save Directory",
+	})
+	if err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// ChangeServersDirectory migrates servers to the new directory, updates settings, and metadata paths.
+func (a *App) ChangeServersDirectory(newDir string) error {
+	if newDir == "" {
+		return fmt.Errorf("directory path cannot be empty")
+	}
+
+	newDirAbs, err := filepath.Abs(newDir)
+	if err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
+
+	oldDirAbs := utils.GetServerRoot()
+	if oldDirAbs == newDirAbs {
+		return nil // Same directory, no changes
+	}
+
+	// 1. List all servers from old directory
+	servers, err := servermanager.ListServers()
+	if err != nil {
+		return fmt.Errorf("failed to list servers: %w", err)
+	}
+
+	// Ensure the new destination directory exists
+	if err := utils.EnsureDir(newDirAbs); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// 2. Migrate each server folder
+	for _, inst := range servers {
+		oldServerDir := filepath.Join(oldDirAbs, inst.ID)
+		newServerDir := filepath.Join(newDirAbs, inst.ID)
+
+		if !utils.FileExists(filepath.Join(oldServerDir, "metadata.json")) {
+			continue
+		}
+
+		// Try to Rename. If it fails (like across partitions), copy and remove.
+		err := os.Rename(oldServerDir, newServerDir)
+		if err != nil {
+			if err := utils.CopyDir(oldServerDir, newServerDir); err != nil {
+				return fmt.Errorf("failed to copy server %s: %w", inst.ID, err)
+			}
+			if err := os.RemoveAll(oldServerDir); err != nil {
+				fmt.Printf("Warning: failed to remove old directory %s: %v\n", oldServerDir, err)
+			}
+		}
+
+		// 3. Update paths in metadata.json
+		metaFile := filepath.Join(newServerDir, "metadata.json")
+		data, err := os.ReadFile(metaFile)
+		if err != nil {
+			return fmt.Errorf("failed to read metadata of migrated server %s: %w", inst.ID, err)
+		}
+
+		var updatedInst servermanager.ServerInstance
+		if err := json.Unmarshal(data, &updatedInst); err != nil {
+			return fmt.Errorf("failed to parse metadata of migrated server %s: %w", inst.ID, err)
+		}
+
+		updatedInst.Path = newServerDir
+		
+		// If BackupPath was relative to old directory, update it
+		if strings.HasPrefix(updatedInst.BackupPath, oldServerDir) {
+			rel, err := filepath.Rel(oldServerDir, updatedInst.BackupPath)
+			if err == nil {
+				updatedInst.BackupPath = filepath.Join(newServerDir, rel)
+			}
+		}
+
+		updatedData, err := json.MarshalIndent(updatedInst, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to serialize metadata of migrated server %s: %w", inst.ID, err)
+		}
+
+		if err := os.WriteFile(metaFile, updatedData, 0644); err != nil {
+			return fmt.Errorf("failed to write updated metadata of migrated server %s: %w", inst.ID, err)
+		}
+	}
+
+	// 4. Update the cached AppSettings and write to settings.json
+	settings, err := utils.LoadSettings()
+	if err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	settings.ServersDir = newDirAbs
+	if err := utils.SaveSettings(settings); err != nil {
+		return fmt.Errorf("failed to save new servers directory: %w", err)
+	}
+
+	return nil
 }
 
 // ValidateCurseForgeKey tests whether the given API key is accepted by CurseForge.

@@ -1,11 +1,12 @@
 import { useState, useEffect, type FormEvent } from "react";
 import type { ServerInstance } from "../ipc/types";
-import { Save, AlertCircle, FileText, Settings, FolderOpen } from "lucide-react";
-import { getServerProperties, updateServerConfig, detectJava, browseForBackupDir } from "../ipc/serverAPI";
+import { Save, AlertCircle, FileText, Settings, FolderOpen, Trash2 } from "lucide-react";
+import { getServerProperties, updateServerConfig, detectJava, browseForBackupDir, deleteServer } from "../ipc/serverAPI";
 
 interface ConfigEditorProps {
   server: ServerInstance;
   refreshServers: () => void;
+  onServerDeleted?: () => void;
 }
 
 // Parses a server.properties text blob into a key-value map.
@@ -184,7 +185,7 @@ function TogglePill({ checked, onChange }: { checked: boolean; onChange: (v: boo
   );
 }
 
-export default function ConfigEditor({ server, refreshServers }: ConfigEditorProps) {
+export default function ConfigEditor({ server, refreshServers, onServerDeleted }: ConfigEditorProps) {
   const [activeSubTab, setActiveSubTab] = useState<"general" | "properties">("general");
 
   // General Config State
@@ -196,6 +197,8 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
   const [version, setVersion] = useState(server.version);
   const [type, setType] = useState(server.type);
   const [backupPath, setBackupPath] = useState(server.backupPath || "");
+  const [jvmArgs, setJvmArgs] = useState(server.jvmArgs || "");
+  const [playitEnabled, setPlayitEnabled] = useState(server.playitEnabled);
 
   // Java Autocomplete List
   const [javas, setJavas] = useState<{ path: string; version: string }[]>([]);
@@ -206,6 +209,7 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
   const [propsLoading, setPropsLoading] = useState(false);
 
   const [saveLoading, setSaveLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
@@ -217,6 +221,8 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
     setVersion(server.version);
     setType(server.type);
     setBackupPath(server.backupPath || "");
+    setJvmArgs(server.jvmArgs || "");
+    setPlayitEnabled(server.playitEnabled);
 
     detectJava().then(setJavas).catch(console.error);
 
@@ -255,7 +261,8 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
         version,
         type,
         backupPath,
-        playitEnabled: false,
+        playitEnabled,
+        jvmArgs,
       });
       setSaveSuccess(true);
       refreshServers();
@@ -310,120 +317,245 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
       <form onSubmit={handleSave}>
         {activeSubTab === "general" ? (
           /* ── General Settings ── */
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-              <div style={rowStyle}>
-                <label style={labelStyle}>Instance Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div style={rowStyle}>
-                <label style={labelStyle}>Server Port</label>
-                <input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} required />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-              <div style={rowStyle}>
-                <label style={labelStyle}>RAM Limit (MB)</label>
-                <input
-                  type="number"
-                  value={memoryMB}
-                  onChange={(e) => setMemoryMB(Number(e.target.value))}
-                  required
-                />
-              </div>
-              <div style={rowStyle}>
-                <label style={labelStyle}>Java Path</label>
-                <select value={javaPath} onChange={(e) => setJavaPath(e.target.value)}>
-                  {javas.map((j) => (
-                    <option key={j.path} value={j.path}>
-                      {j.version} ({j.path})
-                    </option>
-                  ))}
-                  <option value="java">Default System (java)</option>
-                </select>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            {/* Section 1: Basic Server Properties */}
+            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "1.5rem" }}>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
+                1. Basic Server Information
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>Instance Name</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>Server Port</label>
+                  <input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} required />
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+            {/* Section 2: Engine & Runtime */}
+            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "1.5rem" }}>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
+                2. Engine & Runtime Environment
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", marginBottom: "1.25rem" }}>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>Minecraft Version</label>
+                  <input
+                    type="text"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    placeholder="e.g. 1.20.4"
+                    required
+                  />
+                </div>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>Server Loader / Type</label>
+                  <select value={type} onChange={(e) => setType(e.target.value as any)}>
+                    <option value="vanilla">Vanilla (Official)</option>
+                    <option value="spigot">Spigot (Plugins)</option>
+                    <option value="paper">Paper (Optimized Plugins)</option>
+                    <option value="fabric">Fabric (Mods)</option>
+                    <option value="quilt">Quilt (Mods)</option>
+                    <option value="forge">Forge (Mods)</option>
+                    <option value="neoforge">NeoForge (Mods)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>RAM Limit (MB)</label>
+                  <input
+                    type="number"
+                    value={memoryMB}
+                    onChange={(e) => setMemoryMB(Number(e.target.value))}
+                    required
+                  />
+                </div>
+                <div style={rowStyle}>
+                  <label style={labelStyle}>Java Runtime Path</label>
+                  <select value={javaPath} onChange={(e) => setJavaPath(e.target.value)}>
+                    {javas.map((j) => (
+                      <option key={j.path} value={j.path}>
+                        {j.version} ({j.path})
+                      </option>
+                    ))}
+                    <option value="java">Default System (java)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: JVM Arguments & Startup Flags */}
+            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "1.5rem" }}>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
+                3. JVM Arguments & Startup Flags
+              </h3>
               <div style={rowStyle}>
-                <label style={labelStyle}>Minecraft Version</label>
+                <label style={labelStyle}>Custom Startup Flags</label>
                 <input
                   type="text"
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
-                  placeholder="e.g. 1.20.4"
-                  required
+                  value={jvmArgs}
+                  onChange={(e) => setJvmArgs(e.target.value)}
+                  placeholder="e.g. -XX:+UseG1GC -XX:+ParallelRefProcEnabled (Leave blank for standard flags)"
+                  style={{ width: "100%" }}
                 />
-              </div>
-              <div style={rowStyle}>
-                <label style={labelStyle}>Server Loader / Type</label>
-                <select value={type} onChange={(e) => setType(e.target.value as any)}>
-                  <option value="vanilla">Vanilla (Official)</option>
-                  <option value="spigot">Spigot (Plugins)</option>
-                  <option value="paper">Paper (Optimized Plugins)</option>
-                  <option value="fabric">Fabric (Mods)</option>
-                  <option value="quilt">Quilt (Mods)</option>
-                  <option value="forge">Forge (Mods)</option>
-                  <option value="neoforge">NeoForge (Mods)</option>
-                </select>
+                <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+                  Tip: By default, MACE automatically appends the RAM limit (-Xmx / -Xms), jar file, and nogui parameters. Exclude them here unless overriding.
+                </p>
               </div>
             </div>
 
-            {/* Backup Directory */}
-            <div style={rowStyle}>
-              <label style={labelStyle}>Backup Directory</label>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input
-                  type="text"
-                  value={backupPath}
-                  onChange={(e) => setBackupPath(e.target.value)}
-                  placeholder="Default: server/backups/"
-                  style={{ flex: 1 }}
-                />
+            {/* Section 4: Backup Configurations */}
+            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "1.5rem" }}>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
+                4. Backup Configurations
+              </h3>
+              <div style={rowStyle}>
+                <label style={labelStyle}>Backup Directory Path</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input
+                    type="text"
+                    value={backupPath}
+                    onChange={(e) => setBackupPath(e.target.value)}
+                    placeholder="Default: server/backups/"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="button-normal"
+                    onClick={async () => {
+                      try {
+                        const dir = await browseForBackupDir();
+                        if (dir) setBackupPath(dir);
+                      } catch {
+                        alert("Failed to open directory picker.");
+                      }
+                    }}
+                    style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}
+                  >
+                    <FolderOpen size={14} /> Browse
+                  </button>
+                </div>
+                <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+                  Tip: Use a separate drive or dedicated folder to protect server backups from data loss.
+                </p>
+              </div>
+            </div>
+
+            {/* Section 5: Services & Automated Tasks */}
+            <div>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
+                5. System Services & Auto-recovery
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                
+                {/* Watchdog Service */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "1rem 1.25rem",
+                    borderRadius: "10px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: "0.95rem", display: "block" }}>
+                      Watchdog Service (Crash Auto-Restart)
+                    </span>
+                    <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
+                      Automatically restarts the Minecraft server process if it crashes or stops unexpectedly.
+                    </span>
+                  </div>
+                  <TogglePill checked={watchdog} onChange={setWatchdog} />
+                </div>
+
+                {/* Playit Tunneling */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "1rem 1.25rem",
+                    borderRadius: "10px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: "0.95rem", display: "block" }}>
+                      Playit.gg Secure Tunneling (Internet Access)
+                    </span>
+                    <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
+                      Exposes your server to the internet automatically using a playit.gg agent, bypassing the need for port forwarding.
+                    </span>
+                  </div>
+                  <TogglePill checked={playitEnabled} onChange={setPlayitEnabled} />
+                </div>
+
+              </div>
+            </div>
+
+            {/* Section 6: Danger Zone */}
+            <div style={{ paddingTop: "1.5rem" }}>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "#ef4444" }}>
+                Danger Zone
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "1rem 1.25rem",
+                  borderRadius: "10px",
+                  background: "rgba(239,68,68,0.05)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }}
+              >
+                <div>
+                  <span style={{ fontWeight: 600, fontSize: "0.95rem", display: "block", color: "#f87171" }}>
+                    Delete Server
+                  </span>
+                  <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
+                    Permanently delete this server and all its files. This action cannot be undone.
+                  </span>
+                </div>
                 <button
-                  type="button"
-                  className="button-normal"
                   onClick={async () => {
-                    try {
-                      const dir = await browseForBackupDir();
-                      if (dir) setBackupPath(dir);
-                    } catch {
-                      alert("Failed to open directory picker.");
+                    if (confirm("Are you sure you want to completely delete this server and all its files? This cannot be undone.")) {
+                      setDeleteLoading(true);
+                      try {
+                        await deleteServer(server.id);
+                        if (onServerDeleted) onServerDeleted();
+                      } catch (err) {
+                        alert("Failed to delete server: " + err);
+                        setDeleteLoading(false);
+                      }
                     }
                   }}
-                  style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}
+                  disabled={deleteLoading}
+                  className="button-danger"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    fontSize: "0.85rem",
+                    whiteSpace: "nowrap"
+                  }}
                 >
-                  <FolderOpen size={14} /> Browse
+                  <Trash2 size={15} />
+                  {deleteLoading ? "Deleting..." : "Delete Server"}
                 </button>
               </div>
-              <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
-                Tip: Use a separate drive or dedicated folder to protect backups.
-              </p>
             </div>
 
-            {/* Watchdog Toggle */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "1rem 1.25rem",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div>
-                <span style={{ fontWeight: 600, fontSize: "0.95rem", display: "block" }}>
-                  Watchdog (Crash Auto-Restart)
-                </span>
-                <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
-                  Automatically restarts the server process if it crashes unexpectedly.
-                </span>
-              </div>
-              <TogglePill checked={watchdog} onChange={setWatchdog} />
-            </div>
           </div>
         ) : (
           /* ── Server Properties Editor ── */
@@ -502,7 +634,7 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
                         <select
                           value={value}
                           onChange={(e) => handlePropChange(key, e.target.value)}
-                          style={{ width: "auto", minWidth: "160px", margin: 0 }}
+                          style={{ width: "auto", minWidth: "160px" }}
                         >
                           {enumOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -519,7 +651,6 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
                             width: "auto",
                             minWidth: "140px",
                             maxWidth: "260px",
-                            margin: 0,
                             textAlign: ["motd","level-name","level-seed","resource-pack","rcon.password","resource-pack-sha1"].includes(key) ? "left" : "right",
                           }}
                         />
@@ -580,8 +711,7 @@ export default function ConfigEditor({ server, refreshServers }: ConfigEditorPro
           <button
             type="submit"
             disabled={saveLoading}
-            className="btn-primary"
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            className="button-primary"
           >
             <Save size={16} /> {saveLoading ? "Saving…" : "Save Configuration"}
           </button>

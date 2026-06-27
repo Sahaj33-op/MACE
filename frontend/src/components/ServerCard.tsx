@@ -147,11 +147,6 @@ export default function ServerCard({ server, refreshServers, onManage }: ServerC
             className="button-primary"
             style={{
               flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              margin: 0,
               opacity: actionLoading ? 0.6 : 1,
             }}
           >
@@ -161,23 +156,14 @@ export default function ServerCard({ server, refreshServers, onManage }: ServerC
           <button
             onClick={handleStop}
             disabled={actionLoading || server.status === "stopping" || server.status === "installing"}
-            className="button-primary"
+            className="button-danger"
             style={{
               flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              margin: 0,
-              background: "var(--error-color)",
               opacity: actionLoading || server.status === "stopping" ? 0.6 : 1,
-              "--btn-primary-inner-color": "var(--error-color)",
-              "--btn-primary-inner-hover-color": "#b91c1c",
-              "--btn-primary-inner-shadow-color": "#991b1b",
-            } as React.CSSProperties}
+            }}
           >
             {actionLoading || server.status === "stopping" ? (
-              <RefreshCw size={16} />
+              <RefreshCw size={16} className="animate-spin" />
             ) : (
               <Square size={16} />
             )}
@@ -189,13 +175,6 @@ export default function ServerCard({ server, refreshServers, onManage }: ServerC
         <button
           onClick={onManage}
           className="button-normal"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "0.6rem 0.8rem",
-            margin: 0,
-          }}
           title="Open Console & Settings"
         >
           <Terminal size={18} />

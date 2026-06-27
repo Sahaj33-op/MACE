@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { createServer, getAvailableVersions, browseForBackupDir } from "../ipc/serverAPI";
 import { Download, ShieldAlert, Cpu, FolderOpen } from "lucide-react";
 import type { ServerType } from "../ipc/types";
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 
 interface CreateServerProps {
   refreshServers: () => void;
-  setActiveTab: (tab: "dashboard" | "instances" | "create" | "settings" | "import") => void;
+  setActiveTab: (tab: "dashboard" | "server-details" | "create" | "settings" | "import") => void;
 }
 
 export default function CreateServer({ refreshServers, setActiveTab }: CreateServerProps) {
@@ -63,7 +64,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
     try {
       await createServer({ name, type: type as ServerType, version, memoryMB: Number(memoryMB), backupPath, agreeEula });
       refreshServers();
-      setActiveTab("instances");
+      setActiveTab("dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to create server. Check your internet connection.");
     } finally {
@@ -270,7 +271,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
               }}
             />
             <label htmlFor="agreeEula" style={{ fontSize: "0.9rem", color: "var(--text-color)", cursor: "pointer", lineHeight: "1.4" }}>
-              I agree to the <a href="https://www.minecraft.net/eula" target="_blank" rel="noopener noreferrer" style={{ color: "var(--btn-primary-inner-color)", textDecoration: "underline" }}>Minecraft End User License Agreement (EULA)</a> to create this server.
+              I agree to the <span onClick={() => BrowserOpenURL("https://www.minecraft.net/eula")} style={{ color: "var(--btn-primary-inner-color)", textDecoration: "underline" }}>Minecraft End User License Agreement (EULA)</span> to create this server.
             </label>
           </div>
 

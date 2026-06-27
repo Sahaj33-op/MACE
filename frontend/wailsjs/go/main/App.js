@@ -42,6 +42,10 @@ export function BrowseSpiget() {
   return window['go']['main']['App']['BrowseSpiget']();
 }
 
+export function ChangeServersDirectory(arg1) {
+  return window['go']['main']['App']['ChangeServersDirectory'](arg1);
+}
+
 export function CompleteSetup(arg1, arg2) {
   return window['go']['main']['App']['CompleteSetup'](arg1, arg2);
 }
@@ -126,6 +130,10 @@ export function IsFirstRun() {
   return window['go']['main']['App']['IsFirstRun']();
 }
 
+export function KillServer(arg1) {
+  return window['go']['main']['App']['KillServer'](arg1);
+}
+
 export function ListBackups(arg1) {
   return window['go']['main']['App']['ListBackups'](arg1);
 }
@@ -136,6 +144,10 @@ export function ListContent(arg1, arg2) {
 
 export function ListServers() {
   return window['go']['main']['App']['ListServers']();
+}
+
+export function PickServersDirectory() {
+  return window['go']['main']['App']['PickServersDirectory']();
 }
 
 export function RemoveContent(arg1, arg2, arg3) {

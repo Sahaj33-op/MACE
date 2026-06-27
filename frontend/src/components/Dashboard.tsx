@@ -4,7 +4,7 @@ import ServerCard from "./ServerCard";
 
 interface DashboardProps {
   servers: ServerInstance[];
-  setActiveTab: (tab: "dashboard" | "instances" | "create" | "settings") => void;
+  setActiveTab: (tab: "dashboard" | "server-details" | "create" | "settings" | "import") => void;
   refreshServers: () => void;
   onManageInstance: (id: string) => void;
 }
@@ -77,7 +77,6 @@ export default function Dashboard({ servers, setActiveTab, refreshServers, onMan
             <button
               onClick={() => setActiveTab("create")}
               className="button-primary"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 1rem", margin: 0 }}
             >
               <Plus size={16} /> Add Server
             </button>
@@ -119,7 +118,6 @@ export default function Dashboard({ servers, setActiveTab, refreshServers, onMan
             <button
               onClick={() => setActiveTab("create")}
               className="button-primary"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}
             >
               <Plus size={16} /> Create Your First Server
             </button>

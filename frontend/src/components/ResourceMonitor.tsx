@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Cpu, HardDrive, Clock, Activity } from "lucide-react";
+import { Cpu, HardDrive, Clock, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { getServerResources } from "../ipc/serverAPI";
 
 interface ResourceMonitorProps {
@@ -86,6 +86,15 @@ export default function ResourceMonitor({
   const [resources, setResources] = useState<ResourceData | null>(null);
   const [history, setHistory] = useState<{ cpu: number; mem: number }[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem("mace-resource-collapsed") === "true");
+
+  const toggleCollapsed = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem("mace-resource-collapsed", String(next));
+      return next;
+    });
+  };
 
   const isRunning =
     serverStatus === "online" ||
@@ -150,15 +159,18 @@ export default function ResourceMonitor({
         padding: "1.25rem",
         display: "flex",
         flexDirection: "column",
-        gap: "1rem",
+        gap: isCollapsed ? "0" : "1rem",
       }}
     >
       {/* Header */}
       <div
+        onClick={toggleCollapsed}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -169,8 +181,9 @@ export default function ResourceMonitor({
           <span style={{ fontSize: "0.9rem", fontWeight: 700 }}>
             Resource Usage
           </span>
+          {isCollapsed ? <ChevronDown size={16} style={{ color: "var(--accent-color)" }} /> : <ChevronUp size={16} style={{ color: "var(--accent-color)" }} />}
         </div>
-        {resources && (
+        {resources && !isCollapsed && (
           <div
             style={{
               display: "flex",
@@ -186,18 +199,20 @@ export default function ResourceMonitor({
         )}
       </div>
 
-      {!resources ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "1rem",
-            color: "var(--accent-color)",
-            fontSize: "0.8rem",
-          }}
-        >
-          Collecting resource data...
-        </div>
-      ) : (
+      {!isCollapsed && (
+        <>
+          {!resources ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "1rem",
+                color: "var(--accent-color)",
+                fontSize: "0.8rem",
+              }}
+            >
+              Collecting resource data...
+            </div>
+          ) : (
         <>
           {/* Stat Boxes */}
           <div
@@ -363,6 +378,8 @@ export default function ResourceMonitor({
           )}
         </>
       )}
+    </>
+  )}
     </div>
   );
 }

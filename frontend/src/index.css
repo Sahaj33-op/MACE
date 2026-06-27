@@ -40,6 +40,13 @@
   --btn-secondary-inner-color: #5a35b5;
   --btn-secondary-inner-hover-color: #4d2ca6;
   --btn-secondary-inner-shadow-color: #3a1c8c;
+
+  /* Red buttons (danger/stop/kill) */
+  --btn-danger-inner-color: #b91c1c;
+  --btn-danger-inner-hover-color: #991b1b;
+  --btn-danger-inner-shadow-color: #7f1d1d;
+  --btn-danger-inner-border-lt-color: #f87171bf;
+  --btn-danger-inner-border-br-color: #7f1d1d;
 }
 
 /* Global Reset */
@@ -139,18 +146,50 @@ button {
 }
 
 /* Fix legibility and weird paddings on all buttons from minecraft-css */
-.button-primary, .button-secondary, .button-tertiary, .button-normal {
+.button-primary, .button-secondary, .button-tertiary, .button-normal, .button-danger {
   font-family: MinecraftRegular, sans-serif !important;
   letter-spacing: 0.5px !important;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.5) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  margin: 0 !important;
+  padding: 0.6rem 1rem !important;
 }
 
-/* Reset the bizarre paddings from the framework if they don't have mc-action-row */
-.button-primary {
-  padding: 0.6rem 1rem;
+/* Make action row buttons a little shorter if needed, but base buttons are good */
+.mc-action-row > button {
+  min-height: 36px;
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.8rem !important;
 }
-.button-secondary, .button-tertiary {
-  padding: 0.6rem 1rem;
+
+/* Danger Button Style */
+.button-danger {
+  background: var(--btn-danger-inner-color);
+  background-color: var(--btn-danger-inner-color);
+  border: 3px solid var(--btn-primary-border-color);
+  box-shadow: inset 0 -6px 0 0 var(--btn-danger-inner-shadow-color),
+              inset 3px 3px 0 var(--btn-danger-inner-border-lt-color),
+              inset -3px -9px 0 var(--btn-danger-inner-border-br-color);
+  font-weight: 700;
+  text-decoration: none;
+  user-select: none;
+  color: var(--btn-primary-text-color) !important;
+  cursor: pointer;
+}
+
+.button-danger:hover {
+  background-color: var(--btn-danger-inner-hover-color);
+}
+
+.button-danger:active {
+  box-shadow: inset 0 0 0 0 var(--btn-danger-inner-shadow-color),
+              inset 3px 3px 0 var(--btn-danger-inner-border-lt-color),
+              inset -3px -3px 0 var(--btn-danger-inner-border-br-color);
+  position: relative;
+  top: 2px;
 }
 
 /* ===== Global Native Form Element Styling ===== */

@@ -84,3 +84,42 @@ func GetServerRoot() string {
 	return abs
 }
 
+// CopyDir recursively copies a directory tree from src to dst.
+func CopyDir(src, dst string) error {
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return err
+	}
+
+	directory, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, obj := range objects {
+		srcFile := filepath.Join(src, obj.Name())
+		dstFile := filepath.Join(dst, obj.Name())
+
+		if obj.IsDir() {
+			if err := CopyDir(srcFile, dstFile); err != nil {
+				return err
+			}
+		} else {
+			if err := CopyFile(srcFile, dstFile); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+

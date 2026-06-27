@@ -28,6 +28,7 @@ type ServerInstance struct {
 	BackupPath    string       `json:"backupPath"`
 	PlayitEnabled bool         `json:"playitEnabled"`
 	PlayitAddress string       `json:"playitAddress"`
+	JvmArgs       string       `json:"jvmArgs"`
 	Modpack       *ModpackMeta `json:"modpack,omitempty"`
 }
 
@@ -88,6 +89,7 @@ type UpdateConfigPayload struct {
 	Type          string `json:"type"`
 	BackupPath    string `json:"backupPath"`
 	PlayitEnabled bool   `json:"playitEnabled"`
+	JvmArgs       string `json:"jvmArgs"`
 }
 
 // BackupItem represents a single backup archive.

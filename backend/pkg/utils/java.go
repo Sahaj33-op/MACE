@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -29,6 +30,9 @@ func FindJavaInstallations() []JavaInstall {
 		`C:\Program Files\Java`,
 		`C:\Program Files (x86)\Java`,
 		`C:\Program Files\Eclipse Foundation`,
+		`C:\Program Files\Eclipse Adoptium`,
+		`C:\Program Files\AdoptOpenJDK`,
+		`C:\Program Files\Microsoft`,
 		`C:\Program Files\Amazon Corretto`,
 		`C:\Program Files\Zulu`,
 		`C:\Program Files\Semeru`,
@@ -61,6 +65,10 @@ func FindJavaInstallations() []JavaInstall {
 			})
 		}
 	}
+
+	sort.Slice(installs, func(i, j int) bool {
+		return ParseMajorJavaVersion(installs[i].Version) > ParseMajorJavaVersion(installs[j].Version)
+	})
 
 	if len(installs) == 0 {
 		installs = append(installs, JavaInstall{
@@ -97,22 +105,6 @@ func GetJavaVersion(javaPath string) string {
 	return "Unknown"
 }
 
-// IsJava25 returns true if the Java version string matches Java 25.
-func IsJava25(version string) bool {
-	return strings.HasPrefix(version, "25.") || version == "25" || strings.HasPrefix(version, "25-")
-}
-
-// FindJava25 searches detected Java installations for a Java 25 path.
-func FindJava25() (string, bool) {
-	installs := FindJavaInstallations()
-	for _, inst := range installs {
-		if IsJava25(inst.Version) {
-			return inst.Path, true
-		}
-	}
-	return "", false
-}
-
 // ParseMajorJavaVersion parses Java version string (e.g. "1.8.0_391" -> 8, "17.0.2" -> 17).
 func ParseMajorJavaVersion(versionStr string) int {
 	if strings.HasPrefix(versionStr, "1.8") {
@@ -142,6 +134,9 @@ func GetRequiredJavaVersion(mcVersion string) int {
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return 8
+	}
+	if minor >= 25 {
+		return 25
 	}
 	if minor >= 21 {
 		return 21

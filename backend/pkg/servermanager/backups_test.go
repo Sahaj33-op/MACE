@@ -5,20 +5,31 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"mace/backend/pkg/utils"
 )
 
 func TestBackups(t *testing.T) {
-	err := os.MkdirAll("servers", 0755)
+	tempRoot, err := os.MkdirTemp("", "mace-test-servers-*")
 	if err != nil {
-		t.Fatalf("failed to create servers dir: %v", err)
+		t.Fatalf("failed to create temp root: %v", err)
 	}
-	defer os.RemoveAll("servers")
+	defer os.RemoveAll(tempRoot)
+
+	// Save tempRoot to settings to isolate GetServerRoot
+	originalSettings, _ := utils.LoadSettings()
+	defer utils.SaveSettings(originalSettings)
+
+	err = utils.SaveSettings(&utils.AppSettings{
+		ServersDir:    tempRoot,
+		SetupComplete: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to save test settings: %v", err)
+	}
 
 	serverId := "test-server-123"
-	serverPath, err := filepath.Abs(filepath.Join("servers", serverId))
-	if err != nil {
-		t.Fatalf("failed to get absolute path: %v", err)
-	}
+	serverPath := filepath.Join(tempRoot, serverId)
 
 	err = os.MkdirAll(serverPath, 0755)
 	if err != nil {

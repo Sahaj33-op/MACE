@@ -22,6 +22,7 @@ export interface ServerInstance {
   backupPath: string;
   playitEnabled: boolean;
   playitAddress: string;
+  jvmArgs: string;
   modpack?: ModpackMeta;
 }
 
@@ -53,6 +54,7 @@ export interface ModSearchResult {
 
 export interface AppSettings {
   curseForgeApiKey: string;
+  serversDir?: string;
 }
 
 export interface BackupItem {

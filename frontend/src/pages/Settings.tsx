@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Cpu, RotateCw, Database, Terminal, Shield, Key, CheckCircle, AlertCircle } from "lucide-react";
-import { detectJava, getAppSettings, saveAppSettings, validateCurseForgeKey } from "../ipc/serverAPI";
+import { Cpu, RotateCw, Database, Terminal, Shield, Key, CheckCircle, AlertCircle, FolderOpen } from "lucide-react";
+import { detectJava, getAppSettings, saveAppSettings, validateCurseForgeKey, pickServersDirectory, changeServersDirectory } from "../ipc/serverAPI";
 import type { JavaInstall } from "../ipc/types";
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 
 export default function Settings() {
   const [javas, setJavas] = useState<JavaInstall[]>([]);
@@ -13,6 +14,10 @@ export default function Settings() {
   const [cfValidating, setCfValidating] = useState(false);
   const [cfStatus, setCfStatus] = useState<"idle" | "valid" | "invalid">("idle");
   const [cfMessage, setCfMessage] = useState("");
+
+  // Servers directory state
+  const [serversDir, setServersDir] = useState("");
+  const [migrationLoading, setMigrationLoading] = useState(false);
 
   const runDetection = () => {
     setLoading(true);
@@ -27,6 +32,9 @@ export default function Settings() {
       if (s?.curseForgeApiKey) {
         setCfKey(s.curseForgeApiKey);
         setCfStatus("valid");
+      }
+      if (s?.serversDir) {
+        setServersDir(s.serversDir);
       }
     }).catch(() => {});
   }, []);
@@ -63,6 +71,25 @@ export default function Settings() {
     }
   };
 
+  const handleChangeDirectory = async () => {
+    try {
+      const chosen = await pickServersDirectory();
+      if (!chosen) return;
+
+      const confirmMessage = `Would you like to migrate all existing Minecraft servers to the new directory: "${chosen}"?\n\nThis will move all server files. It might take a moment if you have large servers.`;
+      if (!window.confirm(confirmMessage)) return;
+
+      setMigrationLoading(true);
+      await changeServersDirectory(chosen);
+      setServersDir(chosen);
+      alert("Servers migrated successfully!");
+    } catch (e: any) {
+      alert("Migration failed: " + (e.message || e));
+    } finally {
+      setMigrationLoading(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2.5rem" }}>
       {/* Title */}
@@ -82,9 +109,9 @@ export default function Settings() {
 
         <p style={{ fontSize: "0.85rem", color: "var(--accent-color)", lineHeight: "1.5", margin: 0 }}>
           Required to search and install mods from CurseForge. Modrinth works without a key.{" "}
-          <a href="https://console.curseforge.com/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--btn-primary-inner-color)" }}>
+          <span onClick={() => BrowserOpenURL("https://console.curseforge.com/")} style={{ color: "var(--btn-primary-inner-color)", cursor: "pointer", textDecoration: "underline" }}>
             Get a free key at console.curseforge.com →
-          </a>
+          </span>
         </p>
 
         <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -100,7 +127,7 @@ export default function Settings() {
             className="button-normal"
             onClick={handleValidateCfKey}
             disabled={cfValidating || !cfKey.trim()}
-            style={{ margin: 0, padding: "0 1rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+            style={{ whiteSpace: "nowrap" }}
           >
             {cfValidating ? "Testing…" : "Test & Save"}
           </button>
@@ -108,7 +135,7 @@ export default function Settings() {
             className="button-primary"
             onClick={handleSaveCfKey}
             disabled={cfSaving || !cfKey.trim()}
-            style={{ margin: 0, padding: "0 1rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+            style={{ whiteSpace: "nowrap" }}
           >
             {cfSaving ? "Saving…" : "Save"}
           </button>
@@ -119,6 +146,36 @@ export default function Settings() {
             {cfMessage}
           </div>
         )}
+      </div>
+
+      {/* Server Save Directory Card */}
+      <div className="card" style={{ padding: "1.75rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <FolderOpen size={18} style={{ color: "var(--btn-primary-inner-color)" }} />
+          <h2 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>Server Save Directory</h2>
+        </div>
+
+        <p style={{ fontSize: "0.85rem", color: "var(--accent-color)", lineHeight: "1.5", margin: 0 }}>
+          Specify where MACE server files and instances are stored on your disk.
+        </p>
+
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input
+            className="form-input"
+            type="text"
+            readOnly
+            value={serversDir || "Default (./servers)"}
+            style={{ flex: 1, height: "40px", fontSize: "0.85rem", background: "rgba(255,255,255,0.02)", cursor: "default" }}
+          />
+          <button
+            className="button-primary"
+            onClick={handleChangeDirectory}
+            disabled={migrationLoading}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            {migrationLoading ? "Migrating..." : "Change & Migrate"}
+          </button>
+        </div>
       </div>
 
       {/* Java Runtimes Card */}
@@ -132,7 +189,6 @@ export default function Settings() {
             onClick={runDetection}
             disabled={loading}
             className="button-normal"
-            style={{ display: "flex", alignItems: "center", gap: "4px", padding: "0.4rem 0.8rem", margin: 0, fontSize: "0.8rem" }}
           >
             <RotateCw size={12} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
             Scan System

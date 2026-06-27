@@ -14,9 +14,29 @@ import (
 )
 
 var (
-	processes   = make(map[string]*exec.Cmd)
-	processesMu sync.Mutex
+	processes     = make(map[string]*exec.Cmd)
+	processesMu   sync.Mutex
+	userStopped   = make(map[string]bool)
+	userStoppedMu sync.Mutex
 )
+
+// SetUserStopped flags if a server was intentionally stopped by the user.
+func SetUserStopped(id string, stopped bool) {
+	userStoppedMu.Lock()
+	defer userStoppedMu.Unlock()
+	if stopped {
+		userStopped[id] = true
+	} else {
+		delete(userStopped, id)
+	}
+}
+
+// IsUserStopped returns true if the server was stopped by the user.
+func IsUserStopped(id string) bool {
+	userStoppedMu.Lock()
+	defer userStoppedMu.Unlock()
+	return userStopped[id]
+}
 
 // IsRunning checks if a server instance is currently active.
 func IsRunning(id string) bool {
@@ -36,7 +56,7 @@ func IsRunning(id string) bool {
 }
 
 // StartServer launches the Minecraft server jar/scripts.
-func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, playitEnabled bool, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
+func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogEnabled bool, playitEnabled bool, jvmArgs string, statusCallback func(string, string), crashCallback func(string, string, string)) (string, error) {
 	if IsRunning(id) {
 		return "running", nil
 	}
@@ -67,9 +87,26 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 		}
 	}
 
+	var parsedArgs []string
+	if jvmArgs != "" {
+		parsedArgs = splitArgs(jvmArgs)
+	} else {
+		parsedArgs = []string{
+			fmt.Sprintf("-Xmx%dM", memoryMB),
+			fmt.Sprintf("-Xms%dM", memoryMB),
+			"-jar", "server.jar", "nogui",
+		}
+	}
+
 	if useScript {
 		jvmArgsFile := filepath.Join(dir, "user_jvm_args.txt")
-		jvmArgsContent := fmt.Sprintf("-Xmx%dM\n-Xms%dM\n", memoryMB, memoryMB)
+		var jvmArgsList []string
+		for _, arg := range parsedArgs {
+			if strings.HasPrefix(arg, "-") && arg != "-jar" {
+				jvmArgsList = append(jvmArgsList, arg)
+			}
+		}
+		jvmArgsContent := strings.Join(jvmArgsList, "\n") + "\n"
 		os.WriteFile(jvmArgsFile, []byte(jvmArgsContent), 0644)
 
 		if runtime.GOOS == "windows" {
@@ -103,12 +140,7 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 			cmd = exec.Command("sh", "run.sh")
 		}
 	} else {
-		args := []string{
-			fmt.Sprintf("-Xmx%dM", memoryMB),
-			fmt.Sprintf("-Xms%dM", memoryMB),
-			"-jar", "server.jar", "nogui",
-		}
-		cmd = exec.Command(javaPath, args...)
+		cmd = exec.Command(javaPath, parsedArgs...)
 	}
 
 	cmd.Dir = dir
@@ -143,7 +175,7 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	processes[id] = cmd
 	startTimes[id] = time.Now()
 
-	if false && playitEnabled {
+	if playitEnabled {
 		go func() {
 			if err := StartPlayit(id, dir); err != nil {
 				WriteLog(id, "[MACE] [PLAYIT] Failed to start playit: "+err.Error())
@@ -151,7 +183,7 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 		}()
 	}
 
-	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, statusCallback, crashCallback)
+	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, jvmArgs, statusCallback, crashCallback)
 
 	return "started", nil
 }
@@ -162,6 +194,7 @@ func StopServer(id string) (string, error) {
 		return "stopped", nil
 	}
 
+	SetUserStopped(id, true)
 	StopPlayit(id)
 
 	WriteLog(id, "[MACE] Sending stop command to server...")
@@ -176,6 +209,7 @@ func StopServer(id string) (string, error) {
 
 // KillServer forcefully terminates the process.
 func KillServer(id string) (string, error) {
+	SetUserStopped(id, true)
 	processesMu.Lock()
 	cmd, ok := processes[id]
 	processesMu.Unlock()
@@ -186,9 +220,22 @@ func KillServer(id string) (string, error) {
 		return "stopped", nil
 	}
 
-	err := cmd.Process.Kill()
-	if err != nil {
-		return "", fmt.Errorf("failed to kill process: %w", err)
+	pids := getAllPids(cmd.Process.Pid)
+	var lastErr error
+	for i := len(pids) - 1; i >= 0; i-- {
+		proc, err := os.FindProcess(pids[i])
+		if err == nil {
+			if killErr := proc.Kill(); killErr != nil {
+				// Don't fail if the process has already exited
+				if !strings.Contains(killErr.Error(), "process already finished") {
+					lastErr = killErr
+				}
+			}
+		}
+	}
+
+	if lastErr != nil {
+		return "", fmt.Errorf("failed to kill process tree: %w", lastErr)
 	}
 
 	return "killed", nil
@@ -202,4 +249,26 @@ func DeregisterProcess(id string) {
 	processesMu.Unlock()
 	UnregisterStdin(id)
 	StopPlayit(id)
+}
+
+func splitArgs(argsStr string) []string {
+	var args []string
+	var current strings.Builder
+	inQuotes := false
+	for _, r := range argsStr {
+		if r == '"' || r == '\'' {
+			inQuotes = !inQuotes
+		} else if r == ' ' && !inQuotes {
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		} else {
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+	return args
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { onServerCrashed } from "../ipc/serverAPI";
 import { AlertTriangle, X, MessageSquare, RefreshCw } from "lucide-react";
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 
 interface CrashInfo {
   instanceId: string;
@@ -194,17 +195,14 @@ export default function CrashDialog() {
               Restart Server
             </button>
 
-            <a
-              href="https://discord.com/invite/zrrHQC4QKF"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => BrowserOpenURL("https://discord.com/invite/zrrHQC4QKF")}
               className="button-secondary"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
                 fontSize: "0.8rem",
-                textDecoration: "none",
                 margin: 0,
                 backgroundColor: "#5865F2",
                 boxShadow: "inset 2px 2px 0 #7289da, inset -2px -2px 0 #4e5d94",
@@ -213,7 +211,7 @@ export default function CrashDialog() {
             >
               <MessageSquare size={14} />
               Join Discord
-            </a>
+            </button>
 
             <button
               onClick={() => setCrash(null)}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -370,19 +371,39 @@ func StartServer(id string) (string, error) {
 	}
 
 	reqJava := utils.GetRequiredJavaVersion(inst.Version)
+
+	javaExists := false
+	if _, err := os.Stat(inst.JavaPath); err == nil {
+		javaExists = true
+	} else if inst.JavaPath == "java" {
+		if _, err := exec.LookPath("java"); err == nil {
+			javaExists = true
+		}
+	}
+
 	currentVerStr := utils.GetJavaVersion(inst.JavaPath)
 	currentVer := utils.ParseMajorJavaVersion(currentVerStr)
 
-	if currentVer != reqJava {
+	if !javaExists || currentVer < reqJava {
 		if alignedPath, found := utils.FindJavaVersion(reqJava); found {
 			inst.JavaPath = alignedPath
 			SaveServer(inst)
 			launcher.WriteLog(id, fmt.Sprintf("[MACE] Auto-aligned server Java runtime to Java %d: %s", reqJava, alignedPath))
 		} else {
-			if currentVer < reqJava {
+			if !javaExists {
+				javas := utils.FindJavaInstallations()
+				if len(javas) > 0 && javas[0].Path != "java" {
+					inst.JavaPath = javas[0].Path
+					SaveServer(inst)
+					launcher.WriteLog(id, fmt.Sprintf("[MACE] Configured Java path not found. Fell back to highest available Java: %s", inst.JavaPath))
+				} else {
+					return "", fmt.Errorf("configured Java path %q does not exist and no Java installation was found on the system", inst.JavaPath)
+				}
+			} else if currentVer == 0 {
+				launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Could not verify Java version for path %q. Proceeding...", inst.JavaPath))
+			} else {
 				return "", fmt.Errorf("this server requires Java %d+, but is configured to use Java %d (%s) and no compatible Java was found on the system", reqJava, currentVer, currentVerStr)
 			}
-			launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Server requires Java %d but is running on Java %d (%s). Proceeding...", reqJava, currentVer, currentVerStr))
 		}
 	}
 
@@ -391,7 +412,7 @@ func StartServer(id string) (string, error) {
 	}
 
 	setStatus(id, "starting")
-	state, err := launcher.StartServer(inst.ID, inst.Path, inst.JavaPath, inst.MemoryMB, inst.Watchdog, inst.PlayitEnabled, statusCallback, CrashCallback)
+	state, err := launcher.StartServer(inst.ID, inst.Path, inst.JavaPath, inst.MemoryMB, inst.Watchdog, inst.PlayitEnabled, inst.JvmArgs, statusCallback, CrashCallback)
 	if err != nil {
 		setStatus(id, "offline")
 		return "", err
@@ -405,6 +426,16 @@ func StartServer(id string) (string, error) {
 func StopServer(id string) (string, error) {
 	setStatus(id, "stopping")
 	state, err := launcher.StopServer(id)
+	if err != nil {
+		return "", err
+	}
+	return state, nil
+}
+
+// KillServer forcefully terminates the server process.
+func KillServer(id string) (string, error) {
+	setStatus(id, "stopping")
+	state, err := launcher.KillServer(id)
 	if err != nil {
 		return "", err
 	}
@@ -451,6 +482,7 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 	inst.Watchdog = payload.Watchdog
 	inst.BackupPath = payload.BackupPath
 	inst.PlayitEnabled = payload.PlayitEnabled
+	inst.JvmArgs = payload.JvmArgs
 	if payload.Version != "" {
 		inst.Version = payload.Version
 	}

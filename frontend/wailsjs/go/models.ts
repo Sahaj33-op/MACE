@@ -213,6 +213,7 @@ export namespace servermanager {
 	    backupPath: string;
 	    playitEnabled: boolean;
 	    playitAddress: string;
+	    jvmArgs: string;
 	    modpack?: ModpackMeta;
 	
 	    static createFrom(source: any = {}) {
@@ -236,6 +237,7 @@ export namespace servermanager {
 	        this.backupPath = source["backupPath"];
 	        this.playitEnabled = source["playitEnabled"];
 	        this.playitAddress = source["playitAddress"];
+	        this.jvmArgs = source["jvmArgs"];
 	        this.modpack = this.convertValues(source["modpack"], ModpackMeta);
 	    }
 	
@@ -269,6 +271,7 @@ export namespace servermanager {
 	    type: string;
 	    backupPath: string;
 	    playitEnabled: boolean;
+	    jvmArgs: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateConfigPayload(source);
@@ -287,6 +290,7 @@ export namespace servermanager {
 	        this.type = source["type"];
 	        this.backupPath = source["backupPath"];
 	        this.playitEnabled = source["playitEnabled"];
+	        this.jvmArgs = source["jvmArgs"];
 	    }
 	}
 

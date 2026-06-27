@@ -19,6 +19,7 @@ declare global {
           ImportServer(payload: { path: string; name: string }): Promise<ServerInstance>;
           StartServer(id: string): Promise<string>;
           StopServer(id: string): Promise<string>;
+          KillServer(id: string): Promise<string>;
           RestartServer(id: string): Promise<void>;
           DeleteServer(id: string): Promise<void>;
           GetConsoleLogs(id: string): Promise<string[]>;
@@ -36,6 +37,7 @@ declare global {
             type: string;
             backupPath: string;
             playitEnabled: boolean;
+            jvmArgs: string;
           }): Promise<void>;
           GetPlayitStatus(id: string): Promise<{
             playitEnabled: boolean;
@@ -73,6 +75,8 @@ declare global {
           GetAppSettings(): Promise<AppSettings>;
           SaveAppSettings(settings: AppSettings): Promise<void>;
           ValidateCurseForgeKey(apiKey: string): Promise<void>;
+          PickServersDirectory(): Promise<string>;
+          ChangeServersDirectory(newDir: string): Promise<void>;
           // Backups
           ListBackups(id: string): Promise<BackupItem[]>;
           CreateBackup(id: string): Promise<BackupItem>;
@@ -130,6 +134,11 @@ export async function stopServer(id: string): Promise<{ status: string }> {
   return { status };
 }
 
+export async function killServer(id: string): Promise<{ status: string }> {
+  const status = await window.go.main.App.KillServer(id);
+  return { status };
+}
+
 export async function restartServer(id: string): Promise<void> {
   return window.go.main.App.RestartServer(id);
 }
@@ -160,6 +169,7 @@ export async function updateServerConfig(payload: {
   type: string;
   backupPath: string;
   playitEnabled: boolean;
+  jvmArgs: string;
 }): Promise<{ result: string }> {
   await window.go.main.App.UpdateServerConfig(payload);
   return { result: "updated" };
@@ -314,6 +324,14 @@ export async function saveAppSettings(settings: AppSettings): Promise<void> {
 
 export async function validateCurseForgeKey(apiKey: string): Promise<void> {
   return window.go.main.App.ValidateCurseForgeKey(apiKey);
+}
+
+export async function pickServersDirectory(): Promise<string> {
+  return window.go.main.App.PickServersDirectory();
+}
+
+export async function changeServersDirectory(newDir: string): Promise<void> {
+  return window.go.main.App.ChangeServersDirectory(newDir);
 }
 
 // ---- Backups ----

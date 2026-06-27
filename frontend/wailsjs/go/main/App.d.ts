@@ -24,6 +24,8 @@ export function BrowseModrinth(arg1:string,arg2:string,arg3:string):Promise<Arra
 
 export function BrowseSpiget():Promise<Array<downloader.SpigetSearchResult>>;
 
+export function ChangeServersDirectory(arg1:string):Promise<void>;
+
 export function CompleteSetup(arg1:string,arg2:boolean):Promise<void>;
 
 export function CreateBackup(arg1:string):Promise<servermanager.BackupItem>;
@@ -66,11 +68,15 @@ export function InstallSpigetPlugin(arg1:string,arg2:number):Promise<servermanag
 
 export function IsFirstRun():Promise<boolean>;
 
+export function KillServer(arg1:string):Promise<string>;
+
 export function ListBackups(arg1:string):Promise<Array<servermanager.BackupItem>>;
 
 export function ListContent(arg1:string,arg2:string):Promise<Array<servermanager.ContentItem>>;
 
 export function ListServers():Promise<Array<servermanager.ServerInstance>>;
+
+export function PickServersDirectory():Promise<string>;
 
 export function RemoveContent(arg1:string,arg2:string,arg3:string):Promise<void>;
 

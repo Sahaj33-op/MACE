@@ -21,7 +21,17 @@ var (
 
 // settingsPath returns the path to the MACE settings file.
 func settingsPath() string {
-	return filepath.Join("settings.json")
+	localPath := filepath.Join("settings.json")
+	if FileExists(localPath) {
+		return localPath
+	}
+	confDir, err := os.UserConfigDir()
+	if err != nil {
+		return localPath
+	}
+	maceDir := filepath.Join(confDir, "MACE")
+	os.MkdirAll(maceDir, 0755)
+	return filepath.Join(maceDir, "settings.json")
 }
 
 // LoadSettings reads the settings file from disk, returning defaults if absent.
