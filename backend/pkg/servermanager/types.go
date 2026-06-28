@@ -36,6 +36,8 @@ type ServerInstance struct {
 	BackupIncludePlugins bool         `json:"backupIncludePlugins"`
 	BackupIncludeConfigs bool         `json:"backupIncludeConfigs"`
 	LastBackup           string       `json:"lastBackup"`
+	GeyserEnabled        bool         `json:"geyserEnabled"`
+	GeyserPort           int          `json:"geyserPort"`
 }
 
 // ContentItem represents a single mod or plugin JAR inside a server directory.
@@ -101,6 +103,8 @@ type UpdateConfigPayload struct {
 	BackupIncludeWorld   bool   `json:"backupIncludeWorld"`
 	BackupIncludePlugins bool   `json:"backupIncludePlugins"`
 	BackupIncludeConfigs bool   `json:"backupIncludeConfigs"`
+	GeyserEnabled        bool   `json:"geyserEnabled"`
+	GeyserPort           int    `json:"geyserPort"`
 }
 
 // BackupItem represents a single backup archive.

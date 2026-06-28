@@ -30,6 +30,8 @@ export interface ServerInstance {
   backupIncludePlugins?: boolean;
   backupIncludeConfigs?: boolean;
   lastBackup?: string;
+  geyserEnabled?: boolean;
+  geyserPort?: number;
 }
 
 export interface JavaInstall {

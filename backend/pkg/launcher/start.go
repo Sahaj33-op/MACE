@@ -202,6 +202,8 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 
 	go RunWatchdog(id, cmd, dir, javaPath, memoryMB, watchdogEnabled, playitEnabled, jvmArgs, statusCallback, crashCallback)
 
+	PreventSleep(true)
+
 	return "started", nil
 }
 
@@ -239,13 +241,13 @@ func KillServer(id string) (string, error) {
 
 	pids := getAllPids(cmd.Process.Pid)
 	var lastErr error
-	for i := len(pids) - 1; i >= 0; i-- {
-		pid := pids[i]
+	for _, pid := range pids {
 		if isProcessRunning(pid) {
 			proc, err := os.FindProcess(pid)
-			if err == nil {
-				if killErr := proc.Kill(); killErr != nil {
-					// Only treat it as an error if the process remains active
+			if err == nil && proc != nil {
+				killErr := proc.Kill()
+				if killErr != nil {
+					// Check if still running to avoid false negatives (e.g. Access Denied when already dead)
 					if isProcessRunning(pid) {
 						lastErr = killErr
 					}
@@ -266,7 +268,30 @@ func DeregisterProcess(id string) {
 	processesMu.Lock()
 	delete(processes, id)
 	delete(startTimes, id)
+
+	anyRunning := false
+	for _, cmd := range processes {
+		if cmd == nil || cmd.Process == nil {
+			continue
+		}
+		if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+			anyRunning = true
+			break
+		}
+		pids := getAllPids(cmd.Process.Pid)
+		for i := 1; i < len(pids); i++ {
+			if isProcessRunning(pids[i]) {
+				anyRunning = true
+				break
+			}
+		}
+		if anyRunning {
+			break
+		}
+	}
 	processesMu.Unlock()
+
+	PreventSleep(anyRunning)
 	UnregisterStdin(id)
 	StopPlayit(id)
 }

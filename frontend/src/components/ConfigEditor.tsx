@@ -200,6 +200,8 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
   const [type, setType] = useState(server.type);
   const [jvmArgs, setJvmArgs] = useState(server.jvmArgs || "");
   const [playitEnabled, setPlayitEnabled] = useState(server.playitEnabled);
+  const [geyserEnabled, setGeyserEnabled] = useState(server.geyserEnabled || false);
+  const [geyserPort, setGeyserPort] = useState(server.geyserPort || 19132);
 
   // Java Autocomplete List
   const [javas, setJavas] = useState<{ path: string; version: string }[]>([]);
@@ -223,6 +225,8 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
     setType(server.type);
     setJvmArgs(server.jvmArgs || "");
     setPlayitEnabled(server.playitEnabled);
+    setGeyserEnabled(server.geyserEnabled || false);
+    setGeyserPort(server.geyserPort || 19132);
 
     detectJava().then(setJavas).catch(console.error);
 
@@ -262,6 +266,8 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
         type,
         backupPath: server.backupPath || "",
         playitEnabled,
+        geyserEnabled,
+        geyserPort: Number(geyserPort),
         jvmArgs,
         backupSchedule: server.backupSchedule || "off",
         backupRetention: server.backupRetention || 5,
@@ -465,6 +471,53 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                     </span>
                   </div>
                   <TogglePill checked={playitEnabled} onChange={setPlayitEnabled} />
+                </div>
+
+                {/* Geyser Cross-play (Bedrock Compatibility) */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "1rem 1.25rem",
+                    borderRadius: "10px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: "0.95rem", display: "block" }}>
+                        Geyser Cross-play (Bedrock Support)
+                      </span>
+                      <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
+                        Allows Minecraft Bedrock Edition (phone, console, Win10) players to join this Java server.
+                      </span>
+                    </div>
+                    {type === "vanilla" ? (
+                      <span style={{ fontSize: "0.75rem", color: "var(--btn-danger-inner-color)" }}>Not supported on Vanilla</span>
+                    ) : (
+                      <TogglePill checked={geyserEnabled} onChange={setGeyserEnabled} />
+                    )}
+                  </div>
+                  {geyserEnabled && type !== "vanilla" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "0.75rem" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-color)" }}>Geyser Bedrock Port (UDP)</span>
+                        <input
+                          type="number"
+                          value={geyserPort}
+                          onChange={(e) => setGeyserPort(Number(e.target.value))}
+                          placeholder="Default: 19132"
+                          className="form-input"
+                          style={{ width: "160px", height: "36px", fontSize: "0.8rem", padding: "0.25rem 0.5rem" }}
+                        />
+                      </div>
+                      <p style={{ fontSize: "0.72rem", color: "var(--accent-color)", margin: 0, alignSelf: "flex-end", paddingBottom: "0.5rem" }}>
+                        Tip: Bedrock Edition uses UDP port 19132 by default. Verify this port is open/forwarded.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
               </div>

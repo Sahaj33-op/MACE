@@ -43,6 +43,8 @@ declare global {
             backupIncludeWorld?: boolean;
             backupIncludePlugins?: boolean;
             backupIncludeConfigs?: boolean;
+            geyserEnabled?: boolean;
+            geyserPort?: number;
           }): Promise<void>;
           GetPlayitStatus(id: string): Promise<{
             playitEnabled: boolean;
@@ -187,6 +189,8 @@ export async function updateServerConfig(payload: {
   backupIncludeWorld?: boolean;
   backupIncludePlugins?: boolean;
   backupIncludeConfigs?: boolean;
+  geyserEnabled?: boolean;
+  geyserPort?: number;
 }): Promise<{ result: string }> {
   await window.go.main.App.UpdateServerConfig(payload);
   return { result: "updated" };

@@ -418,6 +418,29 @@ func StartServer(id string) (string, error) {
 		}
 	}
 
+	// Port preflight check
+	if !utils.IsTCPPortAvailable(inst.Port) {
+		setStatus(id, "offline")
+		return "", fmt.Errorf("port %d is already in use by another process. Please choose a different port or stop the other application", inst.Port)
+	}
+
+	// Geyser UDP port preflight check
+	if inst.GeyserEnabled {
+		geyserPort := inst.GeyserPort
+		if geyserPort == 0 {
+			geyserPort = 19132
+		}
+		if !utils.IsUDPPortAvailable(geyserPort) {
+			setStatus(id, "offline")
+			return "", fmt.Errorf("geyser Bedrock port %d (UDP) is already in use by another process. Please choose a different UDP port or stop the other application", geyserPort)
+		}
+
+		// Automatically download/provision Geyser if enabled
+		if err := ProvisionGeyser(inst); err != nil {
+			launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Failed to provision Geyser: %v", err))
+		}
+	}
+
 	statusCallback := func(instanceID string, status string) {
 		setStatus(instanceID, status)
 	}
@@ -499,6 +522,8 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 	inst.BackupIncludeWorld = payload.BackupIncludeWorld
 	inst.BackupIncludePlugins = payload.BackupIncludePlugins
 	inst.BackupIncludeConfigs = payload.BackupIncludeConfigs
+	inst.GeyserEnabled = payload.GeyserEnabled
+	inst.GeyserPort = payload.GeyserPort
 	if payload.Version != "" {
 		inst.Version = payload.Version
 	}
@@ -511,6 +536,10 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 		if err := os.WriteFile(propsFile, []byte(payload.RawProps), 0644); err != nil {
 			return err
 		}
+	}
+
+	if err := ProvisionGeyser(inst); err != nil {
+		return fmt.Errorf("failed to provision Geyser: %w", err)
 	}
 
 	return SaveServer(inst)

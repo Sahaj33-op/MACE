@@ -37,6 +37,7 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	launcher.SetupTray(a.ctx)
 	servermanager.CrashCallback = func(instanceID, reason, resolution string) {
 		runtime.EventsEmit(a.ctx, "server-crashed", map[string]string{
 			"instanceId": instanceID,
@@ -65,6 +66,7 @@ func (a *App) domReady(ctx context.Context) {
 
 // shutdown is called at application termination
 func (a *App) shutdown(ctx context.Context) {
+	launcher.RemoveTray()
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for id, done := range a.doneChannels {

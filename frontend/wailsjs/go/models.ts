@@ -243,6 +243,8 @@ export namespace servermanager {
 	    backupIncludePlugins: boolean;
 	    backupIncludeConfigs: boolean;
 	    lastBackup: string;
+	    geyserEnabled: boolean;
+	    geyserPort: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ServerInstance(source);
@@ -273,6 +275,8 @@ export namespace servermanager {
 	        this.backupIncludePlugins = source["backupIncludePlugins"];
 	        this.backupIncludeConfigs = source["backupIncludeConfigs"];
 	        this.lastBackup = source["lastBackup"];
+	        this.geyserEnabled = source["geyserEnabled"];
+	        this.geyserPort = source["geyserPort"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -311,6 +315,8 @@ export namespace servermanager {
 	    backupIncludeWorld: boolean;
 	    backupIncludePlugins: boolean;
 	    backupIncludeConfigs: boolean;
+	    geyserEnabled: boolean;
+	    geyserPort: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateConfigPayload(source);
@@ -335,6 +341,8 @@ export namespace servermanager {
 	        this.backupIncludeWorld = source["backupIncludeWorld"];
 	        this.backupIncludePlugins = source["backupIncludePlugins"];
 	        this.backupIncludeConfigs = source["backupIncludeConfigs"];
+	        this.geyserEnabled = source["geyserEnabled"];
+	        this.geyserPort = source["geyserPort"];
 	    }
 	}
 
