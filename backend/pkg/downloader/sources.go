@@ -112,6 +112,28 @@ func FetchVanillaVersions() ([]string, error) {
 	return list, nil
 }
 
+// FetchVanillaSnapshots fetches snapshot versions from Mojang manifest.
+func FetchVanillaSnapshots() ([]string, error) {
+	resp, err := httpClient.Get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var manifest MojangManifest
+	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, v := range manifest.Versions {
+		if v.Type == "snapshot" {
+			list = append(list, v.ID)
+		}
+	}
+	return list, nil
+}
+
 // FetchPaperVersions fetches all available Paper versions.
 func FetchPaperVersions() ([]string, error) {
 	resp, err := httpClient.Get("https://api.papermc.io/v2/projects/paper")

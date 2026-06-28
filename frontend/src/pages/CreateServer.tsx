@@ -20,6 +20,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
   const [fetchingVersions, setFetchingVersions] = useState(true);
   const [error, setError] = useState("");
   const [versionsMap, setVersionsMap] = useState<Record<string, string[]>>({});
+  const [showSnapshots, setShowSnapshots] = useState(false);
 
   useEffect(() => {
     async function loadVersions() {
@@ -31,6 +32,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
         setError("Failed to fetch server versions. Using offline fallback.");
         const fallback = {
           vanilla:  ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
+          vanilla_snapshots: ["24w12a", "24w11a", "24w10a", "24w09a"],
           paper:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
           fabric:   ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5"],
           quilt:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2"],
@@ -48,7 +50,8 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
 
   const handleTypeChange = (newType: string) => {
     setType(newType);
-    const available = versionsMap[newType];
+    const listKey = (newType === "vanilla" && showSnapshots) ? "vanilla_snapshots" : newType;
+    const available = versionsMap[listKey];
     if (available && available.length > 0) setVersion(available[0]);
   };
 
@@ -173,7 +176,27 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
           {/* Version and RAM */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Minecraft Version</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label className="form-label">Minecraft Version</label>
+                {type === "vanilla" && (
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--accent-color)", cursor: "pointer", marginBottom: "0.25rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={showSnapshots}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setShowSnapshots(checked);
+                        const list = checked ? (versionsMap.vanilla_snapshots || []) : (versionsMap.vanilla || []);
+                        if (list.length > 0) {
+                          setVersion(list[0]);
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    Show Snapshots
+                  </label>
+                )}
+              </div>
               <select
                 className="form-input"
                 value={version}
@@ -184,7 +207,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
                 {fetchingVersions ? (
                   <option>Loading versions...</option>
                 ) : (
-                  (versionsMap[type] || []).map((v) => (
+                  ((type === "vanilla" && showSnapshots ? versionsMap.vanilla_snapshots : versionsMap[type]) || []).map((v) => (
                     <option key={v} value={v}>{v}</option>
                   ))
                 )}
