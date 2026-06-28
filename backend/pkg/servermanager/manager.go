@@ -559,7 +559,7 @@ func GetAvailableVersions() (map[string][]string, error) {
 		err    error
 	}
 
-	ch := make(chan res, 7)
+	ch := make(chan res, 10)
 
 	go func() {
 		v, err := downloader.FetchVanillaVersions()
@@ -574,12 +574,24 @@ func GetAvailableVersions() (map[string][]string, error) {
 		ch <- res{"paper", v, err}
 	}()
 	go func() {
+		v, err := downloader.FetchPaperSnapshots()
+		ch <- res{"paper_snapshots", v, err}
+	}()
+	go func() {
 		v, err := downloader.FetchFabricVersions()
 		ch <- res{"fabric", v, err}
 	}()
 	go func() {
+		v, err := downloader.FetchFabricSnapshots()
+		ch <- res{"fabric_snapshots", v, err}
+	}()
+	go func() {
 		v, err := downloader.FetchQuiltVersions()
 		ch <- res{"quilt", v, err}
+	}()
+	go func() {
+		v, err := downloader.FetchQuiltSnapshots()
+		ch <- res{"quilt_snapshots", v, err}
 	}()
 	go func() {
 		v, err := downloader.FetchForgeVersions()
@@ -593,7 +605,7 @@ func GetAvailableVersions() (map[string][]string, error) {
 	results := make(map[string][]string)
 	var firstErr error
 
-	for i := 0; i < 7; i++ {
+	for i := 0; i < 10; i++ {
 		r := <-ch
 		if r.err != nil {
 			if firstErr == nil {

@@ -90,6 +90,11 @@ func isMinecraftRelease(id string) bool {
 	return err == nil && major >= 26
 }
 
+// isStableVersion checks if the version string is a stable release (does not contain -pre, -rc, etc.)
+func isStableVersion(v string) bool {
+	return !strings.Contains(v, "-pre") && !strings.Contains(v, "-rc") && !strings.Contains(v, "-beta") && !strings.Contains(v, "w")
+}
+
 // FetchVanillaVersions fetches release versions from Mojang manifest.
 func FetchVanillaVersions() ([]string, error) {
 	resp, err := httpClient.Get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
@@ -134,7 +139,7 @@ func FetchVanillaSnapshots() ([]string, error) {
 	return list, nil
 }
 
-// FetchPaperVersions fetches all available Paper versions.
+// FetchPaperVersions fetches all available Paper release versions.
 func FetchPaperVersions() ([]string, error) {
 	resp, err := httpClient.Get("https://api.papermc.io/v2/projects/paper")
 	if err != nil {
@@ -151,7 +156,36 @@ func FetchPaperVersions() ([]string, error) {
 
 	var list []string
 	for _, v := range data.Versions {
-		if isMinecraftRelease(v) {
+		if isMinecraftRelease(v) && isStableVersion(v) {
+			list = append(list, v)
+		}
+	}
+
+	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
+		list[i], list[j] = list[j], list[i]
+	}
+
+	return list, nil
+}
+
+// FetchPaperSnapshots fetches Paper pre-release and release candidate versions.
+func FetchPaperSnapshots() ([]string, error) {
+	resp, err := httpClient.Get("https://api.papermc.io/v2/projects/paper")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var data struct {
+		Versions []string `json:"versions"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, v := range data.Versions {
+		if isMinecraftRelease(v) && !isStableVersion(v) {
 			list = append(list, v)
 		}
 	}
@@ -188,6 +222,31 @@ func FetchFabricVersions() ([]string, error) {
 	return list, nil
 }
 
+// FetchFabricSnapshots fetches unstable/snapshot Fabric game versions.
+func FetchFabricSnapshots() ([]string, error) {
+	resp, err := httpClient.Get("https://meta.fabricmc.net/v2/versions/game")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var versions []struct {
+		Version string `json:"version"`
+		Stable  bool   `json:"stable"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, v := range versions {
+		if !v.Stable && isMinecraftRelease(v.Version) {
+			list = append(list, v.Version)
+		}
+	}
+	return list, nil
+}
+
 // FetchQuiltVersions fetches stable Quilt game versions.
 func FetchQuiltVersions() ([]string, error) {
 	resp, err := httpClient.Get("https://meta.quiltmc.org/v3/versions/game")
@@ -207,6 +266,31 @@ func FetchQuiltVersions() ([]string, error) {
 	var list []string
 	for _, v := range versions {
 		if v.Stable && isMinecraftRelease(v.Version) {
+			list = append(list, v.Version)
+		}
+	}
+	return list, nil
+}
+
+// FetchQuiltSnapshots fetches unstable/snapshot Quilt game versions.
+func FetchQuiltSnapshots() ([]string, error) {
+	resp, err := httpClient.Get("https://meta.quiltmc.org/v3/versions/game")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var versions []struct {
+		Version string `json:"version"`
+		Stable  bool   `json:"stable"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, v := range versions {
+		if !v.Stable && isMinecraftRelease(v.Version) {
 			list = append(list, v.Version)
 		}
 	}

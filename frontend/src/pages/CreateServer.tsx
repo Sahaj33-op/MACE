@@ -34,8 +34,11 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
           vanilla:  ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
           vanilla_snapshots: ["24w12a", "24w11a", "24w10a", "24w09a"],
           paper:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
+          paper_snapshots: ["1.21.11-pre5", "1.21.11-pre4", "1.21.9-pre4", "1.21.9-pre3"],
           fabric:   ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5"],
+          fabric_snapshots: ["24w12a", "1.21-pre1"],
           quilt:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2"],
+          quilt_snapshots: ["24w12a", "1.21-pre1"],
           forge:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
           neoforge: ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.21","1.20.6","1.20.4","1.20.2"],
         };
@@ -50,7 +53,8 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
 
   const handleTypeChange = (newType: string) => {
     setType(newType);
-    const listKey = (newType === "vanilla" && showSnapshots) ? "vanilla_snapshots" : newType;
+    const hasSnapshots = ["vanilla", "paper", "fabric", "quilt"].includes(newType);
+    const listKey = (hasSnapshots && showSnapshots) ? `${newType}_snapshots` : newType;
     const available = versionsMap[listKey];
     if (available && available.length > 0) setVersion(available[0]);
   };
@@ -178,7 +182,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
             <div className="form-group" style={{ margin: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <label className="form-label">Minecraft Version</label>
-                {type === "vanilla" && (
+                {["vanilla", "paper", "fabric", "quilt"].includes(type) && (
                   <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--accent-color)", cursor: "pointer", marginBottom: "0.25rem" }}>
                     <input
                       type="checkbox"
@@ -186,7 +190,8 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setShowSnapshots(checked);
-                        const list = checked ? (versionsMap.vanilla_snapshots || []) : (versionsMap.vanilla || []);
+                        const listKey = checked ? `${type}_snapshots` : type;
+                        const list = versionsMap[listKey] || [];
                         if (list.length > 0) {
                           setVersion(list[0]);
                         }
@@ -207,7 +212,7 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
                 {fetchingVersions ? (
                   <option>Loading versions...</option>
                 ) : (
-                  ((type === "vanilla" && showSnapshots ? versionsMap.vanilla_snapshots : versionsMap[type]) || []).map((v) => (
+                  ((["vanilla", "paper", "fabric", "quilt"].includes(type) && showSnapshots ? versionsMap[`${type}_snapshots`] : versionsMap[type]) || []).map((v) => (
                     <option key={v} value={v}>{v}</option>
                   ))
                 )}
