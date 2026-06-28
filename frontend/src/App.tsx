@@ -6,7 +6,7 @@ import ImportServer from "./pages/ImportServer";
 import Settings from "./pages/Settings";
 import CrashDialog from "./components/CrashDialog";
 import FirstRunWizard from "./components/FirstRunWizard";
-import { PlusCircle, FolderOpen, Settings as SettingsIcon, LayoutDashboard, Cpu, Database } from "lucide-react";
+import { PlusCircle, FolderOpen, Settings as SettingsIcon, LayoutDashboard, Database } from "lucide-react";
 import { listServers, detectJava, isFirstRun } from "./ipc/serverAPI";
 import type { ServerInstance } from "./ipc/types";
 import { BrowserOpenURL } from "../wailsjs/runtime/runtime";
@@ -96,17 +96,14 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <div
               style={{
-                background: "var(--btn-primary-inner-color)",
-                width: "40px",
-                height: "40px",
-                border: "2px solid var(--btn-primary-border-color)",
+                width: "56px",
+                height: "56px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "inset 2px 2px 0 var(--btn-primary-inner-border-lt-color), inset -2px -2px 0 var(--btn-primary-inner-border-br-color)",
               }}
             >
-              <Cpu size={22} color="white" />
+              <img src="/appicon.png" alt="MACE Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </div>
             <div>
               <h2 style={{ fontSize: "1.25rem", fontWeight: 700, letterSpacing: "0.5px" }}>

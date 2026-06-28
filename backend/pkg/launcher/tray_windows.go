@@ -4,12 +4,17 @@ package launcher
 
 import (
 	"context"
+	_ "embed"
+	"fmt"
 	"syscall"
 	"unsafe"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 )
+
+//go:embed icon.ico
+var iconIcoBytes []byte
 
 var (
 	user32               = windows.NewLazySystemDLL("user32.dll")
@@ -29,6 +34,8 @@ var (
 	pGetCursorPos        = user32.NewProc("GetCursorPos")
 	pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 	pLoadIcon            = user32.NewProc("LoadIconW")
+	k32                  = windows.NewLazySystemDLL("kernel32.dll")
+	pGetModuleHandle     = k32.NewProc("GetModuleHandleW")
 )
 
 const (
@@ -130,15 +137,20 @@ func runTrayMessageLoop() {
 
 	trayHWnd = windows.Handle(hwnd)
 
-	// Load standard system application icon
-	hIcon, _, _ := pLoadIcon.Call(0, uintptr(32512)) // IDI_APPLICATION
+	// Load MACE icon from embedded bytes
+	hIcon, err := getIconFromICO(iconIcoBytes)
+	if err != nil || hIcon == 0 {
+		// Fallback to standard system application icon
+		hIconVal, _, _ := pLoadIcon.Call(0, uintptr(32512)) // IDI_APPLICATION
+		hIcon = windows.Handle(hIconVal)
+	}
 
 	trayNID = NOTIFYICONDATAW{
 		HWnd:             trayHWnd,
 		UID:              1,
 		UFlags:           NIF_MESSAGE | NIF_ICON | NIF_TIP,
 		UCallbackMessage: WM_TRAY_MSG,
-		HIcon:            windows.Handle(hIcon),
+		HIcon:            hIcon,
 	}
 	trayNID.CbSize = uint32(unsafe.Sizeof(trayNID))
 	copy(trayNID.SzTip[:], windows.StringToUTF16("MACE - Minecraft Advanced Control Engine"))
@@ -219,4 +231,74 @@ func showTrayMenu() {
 
 	pSetForegroundWindow.Call(uintptr(trayHWnd))
 	pTrackPopupMenu.Call(hMenu, TPM_LEFTALIGN|TPM_RIGHTBUTTON, uintptr(pt.X), uintptr(pt.Y), 0, uintptr(trayHWnd), 0)
+}
+
+func getIconFromICO(icoBytes []byte) (windows.Handle, error) {
+	if len(icoBytes) < 6 {
+		return 0, fmt.Errorf("invalid ICO header")
+	}
+	count := int(icoBytes[4]) | (int(icoBytes[5]) << 8)
+	if count <= 0 {
+		return 0, fmt.Errorf("no images in ICO")
+	}
+
+	bestIndex := -1
+	bestWidth := 0
+	targetSize := 16 // System tray icons are 16x16
+	minDiff := 9999
+
+	for i := 0; i < count; i++ {
+		offset := 6 + i*16
+		if offset+16 > len(icoBytes) {
+			break
+		}
+		w := int(icoBytes[offset])
+		if w == 0 {
+			w = 256
+		}
+		h := int(icoBytes[offset+1])
+		if h == 0 {
+			h = 256
+		}
+
+		diff := w - targetSize
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff < minDiff {
+			minDiff = diff
+			bestIndex = i
+			bestWidth = w
+		}
+	}
+
+	if bestIndex == -1 {
+		return 0, fmt.Errorf("no suitable icon found")
+	}
+
+	entryOffset := 6 + bestIndex*16
+	bytesInRes := uint32(icoBytes[entryOffset+8]) | (uint32(icoBytes[entryOffset+9]) << 8) | (uint32(icoBytes[entryOffset+10]) << 16) | (uint32(icoBytes[entryOffset+11]) << 24)
+	imageOffset := uint32(icoBytes[entryOffset+12]) | (uint32(icoBytes[entryOffset+13]) << 8) | (uint32(icoBytes[entryOffset+14]) << 16) | (uint32(icoBytes[entryOffset+15]) << 24)
+
+	if int(imageOffset+bytesInRes) > len(icoBytes) {
+		return 0, fmt.Errorf("invalid image data range")
+	}
+
+	imageData := icoBytes[imageOffset : imageOffset+bytesInRes]
+
+	pCreateIconFromResourceEx := user32.NewProc("CreateIconFromResourceEx")
+	hIcon, _, err := pCreateIconFromResourceEx.Call(
+		uintptr(unsafe.Pointer(&imageData[0])),
+		uintptr(len(imageData)),
+		1, // TRUE (icon)
+		0x00030000, // Version
+		uintptr(bestWidth),
+		uintptr(bestWidth),
+		0, // Flags (LR_DEFAULTCOLOR)
+	)
+	if hIcon == 0 {
+		return 0, fmt.Errorf("CreateIconFromResourceEx failed: %v", err)
+	}
+
+	return windows.Handle(hIcon), nil
 }
