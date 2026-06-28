@@ -261,6 +261,20 @@ func DeregisterProcess(id string) {
 	StopPlayit(id)
 }
 
+// StopAll terminates all active Minecraft server processes.
+func StopAll() {
+	processesMu.Lock()
+	ids := make([]string, 0, len(processes))
+	for id := range processes {
+		ids = append(ids, id)
+	}
+	processesMu.Unlock()
+
+	for _, id := range ids {
+		_, _ = KillServer(id)
+	}
+}
+
 func splitArgs(argsStr string) []string {
 	var args []string
 	var current strings.Builder

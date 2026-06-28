@@ -77,6 +77,38 @@ func SaveScheduledTasks(list []ScheduledTask) error {
 	return os.WriteFile(tasksPath(), data, 0644)
 }
 
+// lockedModifyTasks loads, modifies via the provided function, and saves tasks
+// under a single critical section to prevent concurrent update races.
+func lockedModifyTasks(modifyFn func(tasks *[]ScheduledTask) error) error {
+	tasksMu.Lock()
+	defer tasksMu.Unlock()
+
+	path := tasksPath()
+	var tasks []ScheduledTask
+	if utils.FileExists(path) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(data, &tasks); err != nil {
+			return err
+		}
+	}
+	if tasks == nil {
+		tasks = []ScheduledTask{}
+	}
+
+	if err := modifyFn(&tasks); err != nil {
+		return err
+	}
+
+	data, err := json.MarshalIndent(tasks, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
+}
+
 // ListScheduledTasks is the Wails binding to retrieve tasks.
 func ListScheduledTasks() ([]ScheduledTask, error) {
 	return LoadScheduledTasks()
@@ -94,16 +126,14 @@ func CreateScheduledTask(task ScheduledTask) (ScheduledTask, error) {
 		return task, fmt.Errorf("invalid cron expression: must contain exactly 5 fields")
 	}
 
-	tasks, err := LoadScheduledTasks()
-	if err != nil {
-		return task, err
-	}
-
 	task.ID = fmt.Sprintf("task-%d", time.Now().UnixNano())
 	task.LastRun = ""
 
-	tasks = append(tasks, task)
-	if err := SaveScheduledTasks(tasks); err != nil {
+	err := lockedModifyTasks(func(tasks *[]ScheduledTask) error {
+		*tasks = append(*tasks, task)
+		return nil
+	})
+	if err != nil {
 		return task, err
 	}
 
@@ -122,28 +152,18 @@ func UpdateScheduledTask(task ScheduledTask) error {
 		return fmt.Errorf("invalid cron expression: must contain exactly 5 fields")
 	}
 
-	tasks, err := LoadScheduledTasks()
-	if err != nil {
-		return err
-	}
-
-	found := false
-	for i, t := range tasks {
-		if t.ID == task.ID {
-			tasks[i].ServerID = task.ServerID
-			tasks[i].ServerName = task.ServerName
-			tasks[i].CronExpression = task.CronExpression
-			tasks[i].Action = task.Action
-			found = true
-			break
+	return lockedModifyTasks(func(tasks *[]ScheduledTask) error {
+		for i, t := range *tasks {
+			if t.ID == task.ID {
+				(*tasks)[i].ServerID = task.ServerID
+				(*tasks)[i].ServerName = task.ServerName
+				(*tasks)[i].CronExpression = task.CronExpression
+				(*tasks)[i].Action = task.Action
+				return nil
+			}
 		}
-	}
-
-	if !found {
 		return fmt.Errorf("task not found")
-	}
-
-	return SaveScheduledTasks(tasks)
+	})
 }
 
 // DeleteScheduledTask removes a task.
@@ -152,26 +172,15 @@ func DeleteScheduledTask(id string) error {
 		return fmt.Errorf("missing ID")
 	}
 
-	tasks, err := LoadScheduledTasks()
-	if err != nil {
-		return err
-	}
-
-	newTasks := []ScheduledTask{}
-	found := false
-	for _, t := range tasks {
-		if t.ID == id {
-			found = true
-			continue
+	return lockedModifyTasks(func(tasks *[]ScheduledTask) error {
+		for i, t := range *tasks {
+			if t.ID == id {
+				*tasks = append((*tasks)[:i], (*tasks)[i+1:]...)
+				return nil
+			}
 		}
-		newTasks = append(newTasks, t)
-	}
-
-	if !found {
 		return fmt.Errorf("task not found")
-	}
-
-	return SaveScheduledTasks(newTasks)
+	})
 }
 
 // matchField checks if a value matches a cron field specification.
@@ -273,7 +282,8 @@ func MatchCron(expr string, t time.Time) bool {
 	}
 
 	wd := int(t.Weekday())
-	if fields[4] == "7" && wd == 0 {
+	// Normalize Sunday: Go's Weekday() returns 0 for Sunday. Cron accepts both 0 and 7.
+	if wd == 0 && matchField(fields[4], 7, 0, 7) {
 		return true
 	}
 	if !matchField(fields[4], wd, 0, 6) {
@@ -354,13 +364,19 @@ func runSingleAction(serverID string, action string) {
 		if status == "online" || status == "starting" {
 			_, _ = StopServer(serverID)
 			go func() {
+				offline := false
 				for i := 0; i < 40; i++ {
 					time.Sleep(500 * time.Millisecond)
 					if getStatus(serverID) == "offline" {
+						offline = true
 						break
 					}
 				}
-				_, _ = StartServer(serverID)
+				if offline {
+					_, _ = StartServer(serverID)
+				} else {
+					launcher.WriteLog(serverID, "[MACE Scheduler] Restart: stop did not reach offline in time, skipping start")
+				}
 			}()
 		} else if status == "offline" {
 			_, _ = StartServer(serverID)

@@ -28,7 +28,7 @@ type MojangVersionDetail struct {
 	Downloads struct {
 		Server struct {
 			URL string `json:"url"`
-		} `json:"server"`
+		} `json:"downloads"`
 	} `json:"downloads"`
 }
 
@@ -215,7 +215,7 @@ func FetchFabricVersions() ([]string, error) {
 
 	var list []string
 	for _, v := range versions {
-		if v.Stable && isMinecraftRelease(v.Version) {
+		if v.Stable {
 			list = append(list, v.Version)
 		}
 	}
@@ -240,7 +240,7 @@ func FetchFabricSnapshots() ([]string, error) {
 
 	var list []string
 	for _, v := range versions {
-		if !v.Stable && isMinecraftRelease(v.Version) {
+		if !v.Stable {
 			list = append(list, v.Version)
 		}
 	}
@@ -265,7 +265,7 @@ func FetchQuiltVersions() ([]string, error) {
 
 	var list []string
 	for _, v := range versions {
-		if v.Stable && isMinecraftRelease(v.Version) {
+		if v.Stable {
 			list = append(list, v.Version)
 		}
 	}
@@ -290,7 +290,7 @@ func FetchQuiltSnapshots() ([]string, error) {
 
 	var list []string
 	for _, v := range versions {
-		if !v.Stable && isMinecraftRelease(v.Version) {
+		if !v.Stable {
 			list = append(list, v.Version)
 		}
 	}
@@ -636,4 +636,3 @@ func GetNeoForgeVersionForMC(mcVersion string) (string, error) {
 
 	return candidates[0], nil
 }
-

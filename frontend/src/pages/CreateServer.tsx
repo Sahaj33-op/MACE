@@ -31,16 +31,16 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
       } catch {
         setError("Failed to fetch server versions. Using offline fallback.");
         const fallback = {
-          vanilla:  ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
+          vanilla: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.2", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.19.4", "1.18.2", "1.16.5", "1.12.2"],
           vanilla_snapshots: ["24w12a", "24w11a", "24w10a", "24w09a"],
-          paper:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
+          paper: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.19.4", "1.18.2", "1.16.5", "1.12.2"],
           paper_snapshots: ["1.21.11-pre5", "1.21.11-pre4", "1.21.9-pre4", "1.21.9-pre3"],
-          fabric:   ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.2","1.21.1","1.21","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5"],
+          fabric: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.2", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.19.4", "1.18.2", "1.16.5"],
           fabric_snapshots: ["24w12a", "1.21-pre1"],
-          quilt:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2"],
+          quilt: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.19.4", "1.18.2"],
           quilt_snapshots: ["24w12a", "1.21-pre1"],
-          forge:    ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.20.6","1.20.4","1.20.2","1.20.1","1.19.4","1.18.2","1.16.5","1.12.2"],
-          neoforge: ["26.1.2","26.1.1","26.1.0","1.21.4","1.21.3","1.21.1","1.21","1.20.6","1.20.4","1.20.2"],
+          forge: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.19.4", "1.18.2", "1.16.5", "1.12.2"],
+          neoforge: ["26.1.2", "26.1.1", "26.1.0", "1.21.4", "1.21.3", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.2"],
         };
         setVersionsMap(fallback);
         setVersion(fallback.vanilla[0] || "26.1.2");
@@ -56,7 +56,14 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
     const hasSnapshots = ["vanilla", "paper", "fabric", "quilt"].includes(newType);
     const listKey = (hasSnapshots && showSnapshots) ? `${newType}_snapshots` : newType;
     const available = versionsMap[listKey];
-    if (available && available.length > 0) setVersion(available[0]);
+    if (available && available.length > 0) {
+      // Only set the first version if the current value isn't in the new list
+      if (!available.includes(version)) {
+        setVersion(available[0]);
+      }
+    } else {
+      setVersion("");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,7 +214,11 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
                       const listKey = checked ? `${type}_snapshots` : type;
                       const list = versionsMap[listKey] || [];
                       if (list.length > 0) {
-                        setVersion(list[0]);
+                        if (!list.includes(version)) {
+                          setVersion(list[0]);
+                        }
+                      } else {
+                        setVersion("");
                       }
                     }}
                     style={{

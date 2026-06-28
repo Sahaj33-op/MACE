@@ -34,6 +34,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
   const [taskAction, setTaskAction] = useState("backup");
   const [taskCustomCommand, setTaskCustomCommand] = useState("");
   const [taskCron, setTaskCron] = useState("0 4 * * *");
+  const [taskSubmitting, setTaskSubmitting] = useState(false);
 
   const runDetection = () => {
     setLoading(true);
@@ -43,7 +44,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
   };
 
   const loadTasks = () => {
-    listScheduledTasks().then(setTasks).catch(() => {});
+    listScheduledTasks().then(setTasks).catch(() => { });
   };
 
   useEffect(() => {
@@ -56,8 +57,8 @@ export default function Settings({ refreshServers }: SettingsProps) {
       if (s?.serversDir) {
         setServersDir(s.serversDir);
       }
-    }).catch(() => {});
-    listServers().then(setServers).catch(() => {});
+    }).catch(() => { });
+    listServers().then(setServers).catch(() => { });
     loadTasks();
   }, []);
 
@@ -118,7 +119,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
     const parts = expr.trim().split(/\s+/);
     if (parts.length !== 5) return "Invalid expression";
     const [min, hour, day, month, dow] = parts;
-    
+
     if (min === "*" && hour === "*" && day === "*" && month === "*" && dow === "*") {
       return "Every minute";
     }
@@ -143,6 +144,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
 
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (taskSubmitting) return; // prevent double submission
     const actionVal = taskAction === "custom" ? taskCustomCommand : taskAction;
     if (!actionVal.trim()) {
       alert("Please specify a command or action");
@@ -158,6 +160,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
       lastRun: editingTask?.lastRun || "",
     };
 
+    setTaskSubmitting(true);
     try {
       if (editingTask) {
         await updateScheduledTask(payload);
@@ -169,6 +172,8 @@ export default function Settings({ refreshServers }: SettingsProps) {
       setEditingTask(null);
     } catch (err: any) {
       alert("Failed to save scheduled task: " + err);
+    } finally {
+      setTaskSubmitting(false);
     }
   };
 
@@ -224,9 +229,9 @@ export default function Settings({ refreshServers }: SettingsProps) {
 
         <p style={{ fontSize: "0.85rem", color: "var(--accent-color)", lineHeight: "1.5", margin: 0 }}>
           Required to search and install mods from CurseForge. Modrinth works without a key.{" "}
-          <span onClick={() => BrowserOpenURL("https://console.curseforge.com/")} style={{ color: "var(--btn-primary-inner-color)", cursor: "pointer", textDecoration: "underline" }}>
+          <button type="button" onClick={() => BrowserOpenURL("https://console.curseforge.com/")} style={{ background: "none", border: "none", padding: 0, color: "var(--btn-primary-inner-color)", cursor: "pointer", textDecoration: "underline", fontSize: "inherit", fontFamily: "inherit" }}>
             Get a free key at console.curseforge.com →
-          </span>
+          </button>
         </p>
 
         <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -611,6 +616,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
               <button
                 type="submit"
                 className="button-primary"
+                disabled={taskSubmitting}
                 style={{ margin: 0, padding: "0.5rem 1rem", fontSize: "0.85rem" }}
               >
                 {editingTask ? "Save Changes" : "Create Task"}

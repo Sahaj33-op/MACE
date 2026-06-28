@@ -264,7 +264,7 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
         backupSchedule: server.backupSchedule || "off",
         backupRetention: server.backupRetention || 5,
         backupIncludeWorld: server.backupIncludeWorld !== false,
-        backupIncludePlugins: !!server.backupIncludePlugins,
+        backupIncludePlugins: server.backupIncludePlugins !== false,
         backupIncludeConfigs: server.backupIncludeConfigs !== false,
       });
       setSaveSuccess(true);
@@ -418,7 +418,7 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                 4. System Services & Auto-recovery
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                
+
                 {/* Watchdog Service */}
                 <div
                   style={{
@@ -611,14 +611,14 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                         </select>
                       ) : (
                         <input
-                          type={["max-players","view-distance","simulation-distance","spawn-protection","player-idle-timeout","max-world-size","server-port","op-permission-level","function-permission-level","rcon.port","query.port","entity-broadcast-range-percentage","network-compression-threshold","max-tick-time"].includes(key) ? "number" : "text"}
+                          type={["max-players", "view-distance", "simulation-distance", "spawn-protection", "player-idle-timeout", "max-world-size", "server-port", "op-permission-level", "function-permission-level", "rcon.port", "query.port", "entity-broadcast-range-percentage", "network-compression-threshold", "max-tick-time"].includes(key) ? "number" : "text"}
                           value={value}
                           onChange={(e) => handlePropChange(key, e.target.value)}
                           style={{
                             width: "auto",
                             minWidth: "140px",
                             maxWidth: "260px",
-                            textAlign: ["motd","level-name","level-seed","resource-pack","rcon.password","resource-pack-sha1"].includes(key) ? "left" : "right",
+                            textAlign: ["motd", "level-name", "level-seed", "resource-pack", "rcon.password", "resource-pack-sha1"].includes(key) ? "left" : "right",
                           }}
                         />
                       )}
@@ -630,44 +630,44 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                 {Object.keys(parsedProps).some(
                   (k) => !ORDERED_KEYS.includes(k)
                 ) && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <label style={{ ...labelStyle, marginBottom: "0.6rem" }}>
-                      Other / Advanced Properties (raw)
-                    </label>
-                    <textarea
-                      value={Object.entries(parsedProps)
-                        .filter(([k]) => !ORDERED_KEYS.includes(k))
-                        .map(([k, v]) => `${k}=${v}`)
-                        .join("\n")}
-                      onChange={(e) => {
-                        const extra = parseProperties(e.target.value);
-                        const merged = { ...parsedProps };
-                        // Remove old unknown keys
-                        Object.keys(parsedProps).forEach((k) => {
-                          if (!ORDERED_KEYS.includes(k)) delete merged[k];
-                        });
-                        // Add new ones
-                        Object.assign(merged, extra);
-                        setParsedProps(merged);
-                        setRawProperties(rebuildProperties(rawProperties, merged));
-                      }}
-                      style={{
-                        width: "100%",
-                        height: "160px",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "0.82rem",
-                        background: "rgba(255,255,255,0.04)",
-                        color: "rgba(255,255,255,0.85)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        padding: "0.85rem 1rem",
-                        borderRadius: "8px",
-                        resize: "vertical",
-                        lineHeight: "1.7",
-                      }}
-                      placeholder="key=value&#10;key2=value2"
-                    />
-                  </div>
-                )}
+                    <div style={{ marginTop: "1rem" }}>
+                      <label style={{ ...labelStyle, marginBottom: "0.6rem" }}>
+                        Other / Advanced Properties (raw)
+                      </label>
+                      <textarea
+                        value={Object.entries(parsedProps)
+                          .filter(([k]) => !ORDERED_KEYS.includes(k))
+                          .map(([k, v]) => `${k}=${v}`)
+                          .join("\n")}
+                        onChange={(e) => {
+                          const extra = parseProperties(e.target.value);
+                          const merged = { ...parsedProps };
+                          // Remove old unknown keys
+                          Object.keys(parsedProps).forEach((k) => {
+                            if (!ORDERED_KEYS.includes(k)) delete merged[k];
+                          });
+                          // Add new ones
+                          Object.assign(merged, extra);
+                          setParsedProps(merged);
+                          setRawProperties(rebuildProperties(rawProperties, merged));
+                        }}
+                        style={{
+                          width: "100%",
+                          height: "160px",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.82rem",
+                          background: "rgba(255,255,255,0.04)",
+                          color: "rgba(255,255,255,0.85)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          padding: "0.85rem 1rem",
+                          borderRadius: "8px",
+                          resize: "vertical",
+                          lineHeight: "1.7",
+                        }}
+                        placeholder="key=value&#10;key2=value2"
+                      />
+                    </div>
+                  )}
               </div>
             )}
           </div>

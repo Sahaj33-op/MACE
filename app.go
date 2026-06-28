@@ -71,6 +71,7 @@ func (a *App) shutdown(ctx context.Context) {
 		close(done)
 		delete(a.doneChannels, id)
 	}
+	launcher.StopAll()
 }
 
 // ListServers returns a list of all Minecraft servers.
@@ -508,8 +509,9 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 
 	// 2. Migrate each server folder
 	type migrationStep struct {
-		oldPath string
-		newPath string
+		oldPath      string
+		newPath      string
+		originalMeta []byte
 	}
 	var migrated []migrationStep
 	var migrationErr error
@@ -519,13 +521,19 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 			// Rollback migrated directories in reverse order
 			for i := len(migrated) - 1; i >= 0; i-- {
 				step := migrated[i]
-				if utils.FileExists(step.newPath) {
+				// Use os.Stat so directories are detected (unlike utils.FileExists which skips dirs)
+				if _, statErr := os.Stat(step.newPath); statErr == nil {
 					// Try rename back first
 					if rollbackRenameErr := os.Rename(step.newPath, step.oldPath); rollbackRenameErr != nil {
 						// If rename back fails, copy back
 						if copyBackErr := utils.CopyDir(step.newPath, step.oldPath); copyBackErr == nil {
 							os.RemoveAll(step.newPath)
 						}
+					}
+					// Restore original metadata bytes if we saved them
+					if step.originalMeta != nil {
+						metaFile := filepath.Join(step.oldPath, "metadata.json")
+						_ = os.WriteFile(metaFile, step.originalMeta, 0644)
 					}
 				}
 			}
@@ -542,7 +550,7 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 
 		// Reject destinations that are inside or equal to oldServerDir to prevent recursive copy/move
 		rel, relErr := filepath.Rel(oldServerDir, newServerDir)
-		if relErr == nil && !strings.HasPrefix(rel, "..") {
+		if relErr == nil && (rel == "." || !strings.HasPrefix(rel, ".."+string(os.PathSeparator))) {
 			migrationErr = fmt.Errorf("invalid destination: %s is inside or equal to %s", newServerDir, oldServerDir)
 			return migrationErr
 		}
@@ -570,19 +578,20 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 			}
 		}
 
-		if moved {
-			migrated = append(migrated, migrationStep{
-				oldPath: oldServerDir,
-				newPath: newServerDir,
-			})
-		}
-
-		// 3. Update paths in metadata.json
+		// 3. Read original metadata before rewriting (preserve for rollback)
 		metaFile := filepath.Join(newServerDir, "metadata.json")
 		data, readErr := os.ReadFile(metaFile)
 		if readErr != nil {
 			migrationErr = fmt.Errorf("failed to read metadata of migrated server %s: %w", inst.ID, readErr)
 			return migrationErr
+		}
+
+		if moved {
+			migrated = append(migrated, migrationStep{
+				oldPath:      oldServerDir,
+				newPath:      newServerDir,
+				originalMeta: data,
+			})
 		}
 
 		var updatedInst servermanager.ServerInstance
@@ -592,11 +601,11 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 		}
 
 		updatedInst.Path = newServerDir
-		
+
 		// If BackupPath was inside the old server directory, update it to the new path
 		if updatedInst.BackupPath != "" {
 			rel, relErr := filepath.Rel(oldServerDir, updatedInst.BackupPath)
-			if relErr == nil && !strings.HasPrefix(rel, "..") {
+			if relErr == nil && (rel == "." || !strings.HasPrefix(rel, ".."+string(os.PathSeparator))) {
 				updatedInst.BackupPath = filepath.Join(newServerDir, rel)
 			}
 		}
