@@ -96,9 +96,12 @@ func CreateBackupWithOptions(id string, includeWorld, includePlugins, includeCon
 			if err != nil {
 				return err
 			}
-			defer file.Close()
 			_, err = io.Copy(writer, file)
-			return err
+			closeErr := file.Close()
+			if err != nil {
+				return err
+			}
+			return closeErr
 		})
 	}
 
