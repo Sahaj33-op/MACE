@@ -179,29 +179,8 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
 
           {/* Version and RAM */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label className="form-label">Minecraft Version</label>
-                {["vanilla", "paper", "fabric", "quilt"].includes(type) && (
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--accent-color)", cursor: "pointer", marginBottom: "0.25rem" }}>
-                    <input
-                      type="checkbox"
-                      checked={showSnapshots}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setShowSnapshots(checked);
-                        const listKey = checked ? `${type}_snapshots` : type;
-                        const list = versionsMap[listKey] || [];
-                        if (list.length > 0) {
-                          setVersion(list[0]);
-                        }
-                      }}
-                      style={{ cursor: "pointer" }}
-                    />
-                    Show Snapshots
-                  </label>
-                )}
-              </div>
+            <div className="form-group" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
+              <label className="form-label">Minecraft Version</label>
               <select
                 className="form-input"
                 value={version}
@@ -217,6 +196,30 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
                   ))
                 )}
               </select>
+              {["vanilla", "paper", "fabric", "quilt"].includes(type) && (
+                <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: "var(--accent-color)", cursor: "pointer", marginTop: "0.4rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={showSnapshots}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setShowSnapshots(checked);
+                      const listKey = checked ? `${type}_snapshots` : type;
+                      const list = versionsMap[listKey] || [];
+                      if (list.length > 0) {
+                        setVersion(list[0]);
+                      }
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      width: "14px",
+                      height: "14px",
+                      accentColor: "var(--btn-primary-inner-color)",
+                    }}
+                  />
+                  Include snapshot/preview builds
+                </label>
+              )}
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
