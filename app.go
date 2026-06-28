@@ -514,8 +514,19 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 			continue
 		}
 
+		// Reject destinations that are inside or equal to oldServerDir to prevent recursive copy/move
+		rel, err := filepath.Rel(oldServerDir, newServerDir)
+		if err == nil && !strings.HasPrefix(rel, "..") {
+			return fmt.Errorf("invalid destination: %s is inside or equal to %s", newServerDir, oldServerDir)
+		}
+
+		// Reject move if destination already exists
+		if _, err := os.Stat(newServerDir); err == nil || !os.IsNotExist(err) {
+			return fmt.Errorf("destination directory already exists: %s", newServerDir)
+		}
+
 		// Try to Rename. If it fails (like across partitions), copy and remove.
-		err := os.Rename(oldServerDir, newServerDir)
+		err = os.Rename(oldServerDir, newServerDir)
 		if err != nil {
 			if err := utils.CopyDir(oldServerDir, newServerDir); err != nil {
 				return fmt.Errorf("failed to copy server %s: %w", inst.ID, err)
