@@ -592,10 +592,10 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 
 		updatedInst.Path = newServerDir
 		
-		// If BackupPath was relative to old directory, update it
-		if strings.HasPrefix(updatedInst.BackupPath, oldServerDir) {
+		// If BackupPath was inside the old server directory, update it to the new path
+		if updatedInst.BackupPath != "" {
 			rel, relErr := filepath.Rel(oldServerDir, updatedInst.BackupPath)
-			if relErr == nil {
+			if relErr == nil && !strings.HasPrefix(rel, "..") {
 				updatedInst.BackupPath = filepath.Join(newServerDir, rel)
 			}
 		}
