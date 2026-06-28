@@ -601,6 +601,7 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={async () => {
                     if (confirm("Are you sure you want to completely delete this server and all its files? This cannot be undone.")) {
                       setDeleteLoading(true);
