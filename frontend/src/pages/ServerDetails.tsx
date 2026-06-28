@@ -8,6 +8,7 @@ import InstanceContentManager from "../components/ContentManager";
 import BackupManager from "../components/BackupManager";
 import PlayerManager from "../components/PlayerManager";
 import { startServer, stopServer, restartServer, killServer } from "../ipc/serverAPI";
+import { useDialog } from "../context/DialogContext";
 
 interface ServerDetailsProps {
   server: ServerInstance;
@@ -17,39 +18,42 @@ interface ServerDetailsProps {
 }
 
 export default function ServerDetails({ server, refreshServers, onBack, onServerDeleted }: ServerDetailsProps) {
+  const { alert, dangerConfirm } = useDialog();
   const [activeTab, setActiveTab] = useState<"terminal" | "players" | "config" | "mods" | "backups">("terminal");
   const [serverActionLoading, setServerActionLoading] = useState(false);
-
-
 
   const handleStart = async () => {
     setServerActionLoading(true);
     try { await startServer(server.id); refreshServers(); }
-    catch (err: any) { alert("Failed to start server: " + err.message); }
+    catch (err: any) { await alert("Failed to start server: " + err.message, "Start Server Error"); }
     finally { setServerActionLoading(false); }
   };
 
   const handleStop = async () => {
     setServerActionLoading(true);
     try { await stopServer(server.id); refreshServers(); }
-    catch (err: any) { alert("Failed to stop server: " + err.message); }
+    catch (err: any) { await alert("Failed to stop server: " + err.message, "Stop Server Error"); }
     finally { setServerActionLoading(false); }
   };
 
   const handleRestart = async () => {
     setServerActionLoading(true);
     try { await restartServer(server.id); refreshServers(); }
-    catch (err: any) { alert("Failed to restart server: " + err.message); }
+    catch (err: any) { await alert("Failed to restart server: " + err.message, "Restart Server Error"); }
     finally { setServerActionLoading(false); }
   };
 
   const handleKill = async () => {
-    if (!window.confirm("Are you sure you want to forcefully kill this server process? Any unsaved world progress will be lost.")) {
+    const confirmed = await dangerConfirm(
+      "Are you sure you want to forcefully kill this server process? Any unsaved world progress will be lost.",
+      "Force Kill Server"
+    );
+    if (!confirmed) {
       return;
     }
     setServerActionLoading(true);
     try { await killServer(server.id); refreshServers(); }
-    catch (err: any) { alert("Failed to kill server: " + err.message); }
+    catch (err: any) { await alert("Failed to kill server: " + err.message, "Kill Server Error"); }
     finally { setServerActionLoading(false); }
   };
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { onServerCrashed } from "../ipc/serverAPI";
 import { AlertTriangle, X, MessageSquare, RefreshCw } from "lucide-react";
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
+import { useDialog } from "../context/DialogContext";
 
 interface CrashInfo {
   instanceId: string;
@@ -10,6 +11,7 @@ interface CrashInfo {
 }
 
 export default function CrashDialog() {
+  const { alert } = useDialog();
   const [crash, setCrash] = useState<CrashInfo | null>(null);
 
   useEffect(() => {
@@ -172,12 +174,15 @@ export default function CrashDialog() {
             }}
           >
             <button
-              onClick={() => {
+              onClick={async () => {
                 // Trigger restart call using window.go if available
                 if (window.go?.main?.App?.RestartServer) {
-                  window.go.main.App.RestartServer(crash.instanceId)
-                    .then(() => setCrash(null))
-                    .catch((err) => alert("Failed to restart: " + err));
+                  try {
+                    await window.go.main.App.RestartServer(crash.instanceId);
+                    setCrash(null);
+                  } catch (err) {
+                    await alert("Failed to restart: " + err, "Restart Error");
+                  }
                 } else {
                   setCrash(null);
                 }

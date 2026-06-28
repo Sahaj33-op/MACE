@@ -292,36 +292,9 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		}
 	}
 
-	if !utils.FileExists(filepath.Join(absPath, "eula.txt")) {
-		os.WriteFile(filepath.Join(absPath, "eula.txt"), []byte("eula=true\n"), 0644)
-	}
-
-	EnsureContentDirs(absPath)
-
 	name := payload.Name
 	if name == "" {
 		name = filepath.Base(absPath)
-	}
-
-	safeName := strings.ToLower(name)
-	safeName = strings.ReplaceAll(safeName, " ", "-")
-	var sb strings.Builder
-	for _, r := range safeName {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			sb.WriteRune(r)
-		}
-	}
-	id := fmt.Sprintf("%s-import-%d", sb.String(), time.Now().Unix()%100000)
-
-	reqJava := utils.GetRequiredJavaVersion(detectedVersion)
-	javaPath := "java"
-	if jPath, found := utils.FindJavaVersion(reqJava); found {
-		javaPath = jPath
-	} else {
-		javas := utils.FindJavaInstallations()
-		if len(javas) > 0 {
-			javaPath = javas[0].Path
-		}
 	}
 
 	port := 25565
@@ -341,12 +314,49 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 		}
 	}
 
+	safeName := strings.ToLower(name)
+	safeName = strings.ReplaceAll(safeName, " ", "-")
+	var sb strings.Builder
+	for _, r := range safeName {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			sb.WriteRune(r)
+		}
+	}
+	id := fmt.Sprintf("%s-import-%d", sb.String(), time.Now().Unix()%100000)
+
+	serverDir := filepath.Join(utils.GetServerRoot(), id)
+	if err := utils.EnsureDir(serverDir); err != nil {
+		return nil, err
+	}
+
+	if err := utils.CopyDir(absPath, serverDir); err != nil {
+		os.RemoveAll(serverDir)
+		return nil, fmt.Errorf("failed to copy server files: %w", err)
+	}
+
+	if !utils.FileExists(filepath.Join(serverDir, "eula.txt")) {
+		os.WriteFile(filepath.Join(serverDir, "eula.txt"), []byte("eula=true\n"), 0644)
+	}
+
+	EnsureContentDirs(serverDir)
+
+	reqJava := utils.GetRequiredJavaVersion(detectedVersion)
+	javaPath := "java"
+	if jPath, found := utils.FindJavaVersion(reqJava); found {
+		javaPath = jPath
+	} else {
+		javas := utils.FindJavaInstallations()
+		if len(javas) > 0 {
+			javaPath = javas[0].Path
+		}
+	}
+
 	inst := &ServerInstance{
 		ID:        id,
 		Name:      name,
 		Version:   detectedVersion,
 		Type:      detectedType,
-		Path:      absPath,
+		Path:      serverDir,
 		Status:    "offline",
 		JavaPath:  javaPath,
 		MemoryMB:  2048,
@@ -357,6 +367,7 @@ func ImportServer(payload ImportServerPayload) (*ServerInstance, error) {
 	}
 
 	if err := SaveServer(inst); err != nil {
+		os.RemoveAll(serverDir)
 		return nil, err
 	}
 
@@ -514,7 +525,14 @@ func DeleteServer(id string) error {
 
 	if launcher.IsRunning(id) {
 		launcher.KillServer(id)
-		time.Sleep(500 * time.Millisecond)
+		
+		// Wait for all processes (including children) to exit to release file locks on Windows
+		for i := 0; i < 20; i++ {
+			if !launcher.IsRunning(id) {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
 	managedPath := filepath.Clean(filepath.Join(utils.GetServerRoot(), id))

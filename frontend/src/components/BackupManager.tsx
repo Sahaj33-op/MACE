@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type { BackupItem, ServerInstance } from "../ipc/types";
-import { listBackups, restoreBackup, deleteBackup, createBackupWithOptions, updateServerConfig, browseForBackupDir, showConfirmDialog } from "../ipc/serverAPI";
+import { listBackups, restoreBackup, deleteBackup, createBackupWithOptions, updateServerConfig, browseForBackupDir } from "../ipc/serverAPI";
 import { Archive, RotateCcw, Trash2, Plus, Loader2, AlertTriangle, FolderOpen } from "lucide-react";
+import { useDialog } from "../context/DialogContext";
 
 interface BackupManagerProps {
   server: ServerInstance;
@@ -9,6 +10,7 @@ interface BackupManagerProps {
 }
 
 export default function BackupManager({ server, refreshServers }: BackupManagerProps) {
+  const { alert, dangerConfirm } = useDialog();
   const serverId = server.id;
   const [backups, setBackups] = useState<BackupItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,9 +64,9 @@ export default function BackupManager({ server, refreshServers }: BackupManagerP
   };
 
   const handleRestore = async (fileName: string) => {
-    const confirmed = await showConfirmDialog(
-      "Restore Backup",
-      `Are you sure you want to restore "${fileName}"?\n\nThis will stop the server (if running), archive the current world, and replace it with this backup.`
+    const confirmed = await dangerConfirm(
+      `Are you sure you want to restore "${fileName}"?\n\nThis will stop the server (if running), archive the current world, and replace it with this backup.`,
+      "Restore Backup"
     );
     if (!confirmed) return;
 
@@ -72,7 +74,7 @@ export default function BackupManager({ server, refreshServers }: BackupManagerP
     setError(null);
     try {
       await restoreBackup(serverId, fileName);
-      alert("Backup restored successfully!");
+      await alert("Backup restored successfully!", "Restore Success");
       await fetchBackups();
     } catch (err: any) {
       setError("Failed to restore backup: " + err.message);
@@ -82,9 +84,9 @@ export default function BackupManager({ server, refreshServers }: BackupManagerP
   };
 
   const handleDelete = async (fileName: string) => {
-    const confirmed = await showConfirmDialog(
-      "Delete Backup",
-      `Delete backup "${fileName}"? This cannot be undone.`
+    const confirmed = await dangerConfirm(
+      `Delete backup "${fileName}"? This cannot be undone.`,
+      "Delete Backup"
     );
     if (!confirmed) return;
 
@@ -149,7 +151,7 @@ export default function BackupManager({ server, refreshServers }: BackupManagerP
         backupIncludeConfigs: incConfigs,
       });
       refreshServers();
-      alert("Backup settings saved successfully!");
+      await alert("Backup settings saved successfully!", "Settings Saved");
     } catch (err: any) {
       setError("Failed to save backup settings: " + (err.message || err));
     } finally {
@@ -354,7 +356,7 @@ export default function BackupManager({ server, refreshServers }: BackupManagerP
                     const dir = await browseForBackupDir();
                     if (dir) setBackupPath(dir);
                   } catch {
-                    alert("Failed to open directory picker.");
+                    await alert("Failed to open directory picker.", "Directory Picker Error");
                   }
                 }}
                 style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}

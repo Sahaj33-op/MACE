@@ -8,6 +8,7 @@ import {
   searchSpiget, browseSpiget, installSpigetPlugin
 } from "../ipc/serverAPI";
 import { Package, Puzzle, Archive, Search, Plus, Trash2, ToggleLeft, ToggleRight, Download, AlertCircle, CheckCircle, Loader, ExternalLink } from "lucide-react";
+import { useDialog } from "../context/DialogContext";
 
 // Which loaders support mods vs plugins
 const MOD_LOADERS = ["fabric", "quilt", "forge", "neoforge"];
@@ -29,6 +30,7 @@ function formatDownloads(n: number): string {
 }
 
 function ContentManager({ server, contentType }: ContentManagerProps) {
+  const { dangerConfirm } = useDialog();
   const [innerTab, setInnerTab] = useState<InnerTab>("installed");
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loadingList, setLoadingList] = useState(false);
@@ -106,7 +108,8 @@ function ContentManager({ server, contentType }: ContentManagerProps) {
   };
 
   const handleRemove = async (item: ContentItem) => {
-    if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    const confirmed = await dangerConfirm(`Delete "${item.name}"? This cannot be undone.`, "Delete Content");
+    if (!confirmed) return;
     setActionLoading(item.fileName);
     setError("");
     try {

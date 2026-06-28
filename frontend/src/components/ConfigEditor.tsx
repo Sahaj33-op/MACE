@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import type { ServerInstance } from "../ipc/types";
 import { Save, AlertCircle, FileText, Settings, Trash2 } from "lucide-react";
 import { getServerProperties, updateServerConfig, detectJava, deleteServer } from "../ipc/serverAPI";
+import { useDialog } from "../context/DialogContext";
 
 interface ConfigEditorProps {
   server: ServerInstance;
@@ -186,6 +187,7 @@ function TogglePill({ checked, onChange }: { checked: boolean; onChange: (v: boo
 }
 
 export default function ConfigEditor({ server, refreshServers, onServerDeleted }: ConfigEditorProps) {
+  const { alert, dangerConfirm } = useDialog();
   const [activeSubTab, setActiveSubTab] = useState<"general" | "properties">("general");
 
   // General Config State
@@ -271,7 +273,7 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
       refreshServers();
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      alert("Failed to save configuration: " + err);
+      await alert("Failed to save configuration: " + err, "Save Configuration Error");
     } finally {
       setSaveLoading(false);
     }
@@ -495,13 +497,17 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                 <button
                   type="button"
                   onClick={async () => {
-                    if (confirm("Are you sure you want to completely delete this server and all its files? This cannot be undone.")) {
+                    const confirmed = await dangerConfirm(
+                      "Are you sure you want to completely delete this server and all its files? This cannot be undone.",
+                      "Delete Server"
+                    );
+                    if (confirmed) {
                       setDeleteLoading(true);
                       try {
                         await deleteServer(server.id);
                         if (onServerDeleted) onServerDeleted();
                       } catch (err) {
-                        alert("Failed to delete server: " + err);
+                        await alert("Failed to delete server: " + err, "Delete Server Error");
                         setDeleteLoading(false);
                       }
                     }

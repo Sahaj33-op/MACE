@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Users, Crown, Shield, UserMinus, UserCheck, Ban, RefreshCw, Loader2, LogOut } from "lucide-react";
 import { getActivePlayers, getPlayerRoles, sendCommand, onPlayersUpdated, offPlayersUpdated } from "../ipc/serverAPI";
+import { useDialog } from "../context/DialogContext";
 
 interface PlayerManagerProps {
   serverId: string;
@@ -8,6 +9,7 @@ interface PlayerManagerProps {
 }
 
 export default function PlayerManager({ serverId, serverStatus }: PlayerManagerProps) {
+  const { alert, dangerConfirm } = useDialog();
   const [activePlayersList, setActivePlayersList] = useState<string[]>([]);
   const [opsList, setOpsList] = useState<string[]>([]);
   const [whitelistList, setWhitelistList] = useState<string[]>([]);
@@ -85,7 +87,10 @@ export default function PlayerManager({ serverId, serverStatus }: PlayerManagerP
         break;
     }
 
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    if (confirmMsg) {
+      const confirmed = await dangerConfirm(confirmMsg, "Confirm Action");
+      if (!confirmed) return;
+    }
 
     setActionLoading(`${playerName}-${actionType}`);
     try {
@@ -96,7 +101,7 @@ export default function PlayerManager({ serverId, serverStatus }: PlayerManagerP
         setActionLoading(null);
       }, 600);
     } catch (err: any) {
-      alert(`Failed to execute command: ${err.message || err}`);
+      await alert(`Failed to execute command: ${err.message || err}`, "Command Error");
       setActionLoading(null);
     }
   };

@@ -2,6 +2,7 @@ import { useState, type MouseEvent } from "react";
 import type { ServerInstance } from "../ipc/types";
 import { Play, Square, Terminal, Cpu, HardDrive, RefreshCw } from "lucide-react";
 import { startServer, stopServer } from "../ipc/serverAPI";
+import { useDialog } from "../context/DialogContext";
 
 interface ServerCardProps {
   server: ServerInstance;
@@ -10,6 +11,7 @@ interface ServerCardProps {
 }
 
 export default function ServerCard({ server, refreshServers, onManage }: ServerCardProps) {
+  const { alert } = useDialog();
   const [actionLoading, setActionLoading] = useState(false);
 
   const handleStart = async (e: MouseEvent) => {
@@ -19,7 +21,7 @@ export default function ServerCard({ server, refreshServers, onManage }: ServerC
       await startServer(server.id);
       refreshServers();
     } catch (err) {
-      alert("Failed to start server: " + err);
+      await alert("Failed to start server: " + err, "Start Server Error");
     } finally {
       setActionLoading(false);
     }
@@ -32,7 +34,7 @@ export default function ServerCard({ server, refreshServers, onManage }: ServerC
       await stopServer(server.id);
       refreshServers();
     } catch (err) {
-      alert("Failed to stop server: " + err);
+      await alert("Failed to stop server: " + err, "Stop Server Error");
     } finally {
       setActionLoading(false);
     }

@@ -20,6 +20,24 @@ func RunWatchdog(
 	crashCallback func(string, string, string),
 ) {
 	err := cmd.Wait()
+
+	// Wait for any orphan/child processes (like java.exe) to also exit
+	if cmd.Process != nil {
+		for {
+			hasChildren := false
+			pids := getAllPids(cmd.Process.Pid)
+			for i := 1; i < len(pids); i++ {
+				if isProcessRunning(pids[i]) {
+					hasChildren = true
+					break
+				}
+			}
+			if !hasChildren {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
 	
 	userStop := IsUserStopped(id)
 

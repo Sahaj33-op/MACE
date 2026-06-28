@@ -51,3 +51,17 @@ func TestGetProcessResources(t *testing.T) {
 
 	t.Logf("Second process CPU: %f%%, Memory: %f MB", cpu2, mem2)
 }
+
+func TestIsProcessRunning(t *testing.T) {
+	// Current process should be running
+	if !isProcessRunning(os.Getpid()) {
+		t.Errorf("Expected current PID %d to be running", os.Getpid())
+	}
+
+	// An extremely large PID should not be running
+	// (we assume 999999 is not a valid running PID on this test system)
+	if isProcessRunning(999999) {
+		t.Logf("Warning: PID 999999 appears to be running, this is unexpected but possible if PIDs wrap around.")
+	}
+}
+

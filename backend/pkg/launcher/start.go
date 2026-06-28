@@ -46,13 +46,20 @@ func IsRunning(id string) bool {
 	if !ok || cmd == nil {
 		return false
 	}
-	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+	if cmd.Process == nil {
 		return false
 	}
-	if cmd.Process != nil {
-		return true
+	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+		// Even if the main process exited, check if child processes are still running
+		pids := getAllPids(cmd.Process.Pid)
+		for i := 1; i < len(pids); i++ {
+			if isProcessRunning(pids[i]) {
+				return true
+			}
+		}
+		return false
 	}
-	return false
+	return true
 }
 
 // StartServer launches the Minecraft server jar/scripts.
@@ -233,12 +240,15 @@ func KillServer(id string) (string, error) {
 	pids := getAllPids(cmd.Process.Pid)
 	var lastErr error
 	for i := len(pids) - 1; i >= 0; i-- {
-		proc, err := os.FindProcess(pids[i])
-		if err == nil {
-			if killErr := proc.Kill(); killErr != nil {
-				// Don't fail if the process has already exited
-				if !strings.Contains(killErr.Error(), "process already finished") {
-					lastErr = killErr
+		pid := pids[i]
+		if isProcessRunning(pid) {
+			proc, err := os.FindProcess(pid)
+			if err == nil {
+				if killErr := proc.Kill(); killErr != nil {
+					// Only treat it as an error if the process remains active
+					if isProcessRunning(pid) {
+						lastErr = killErr
+					}
 				}
 			}
 		}

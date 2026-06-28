@@ -177,3 +177,32 @@ func getProcessResources(rootPid int, pids []int) (float64, float64, error) {
 
 	return totalCPU, totalMem, nil
 }
+
+// isProcessRunning checks if a process is still active on Windows.
+func isProcessRunning(pid int) bool {
+	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return false
+	}
+	defer windows.CloseHandle(snapshot)
+
+	var pe windows.ProcessEntry32
+	pe.Size = uint32(unsafe.Sizeof(pe))
+
+	err = windows.Process32First(snapshot, &pe)
+	if err != nil {
+		return false
+	}
+
+	for {
+		if int(pe.ProcessID) == pid {
+			return true
+		}
+		err = windows.Process32Next(snapshot, &pe)
+		if err != nil {
+			break
+		}
+	}
+	return false
+}
+

@@ -3,12 +3,14 @@ import { Cpu, RotateCw, Database, Terminal, Shield, Key, CheckCircle, AlertCircl
 import { detectJava, getAppSettings, saveAppSettings, validateCurseForgeKey, pickServersDirectory, changeServersDirectory, listScheduledTasks, createScheduledTask, updateScheduledTask, deleteScheduledTask, listServers } from "../ipc/serverAPI";
 import type { JavaInstall, ScheduledTask, ServerInstance, AppSettings } from "../ipc/types";
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
+import { useDialog } from "../context/DialogContext";
 
 interface SettingsProps {
   refreshServers?: () => void;
 }
 
 export default function Settings({ refreshServers }: SettingsProps) {
+  const { alert, confirm, dangerConfirm } = useDialog();
   const [javas, setJavas] = useState<JavaInstall[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -100,15 +102,16 @@ export default function Settings({ refreshServers }: SettingsProps) {
       if (!chosen) return;
 
       const confirmMessage = `Would you like to migrate all existing Minecraft servers to the new directory: "${chosen}"?\n\nThis will move all server files. It might take a moment if you have large servers.`;
-      if (!window.confirm(confirmMessage)) return;
+      const confirmed = await confirm(confirmMessage, "Migrate Servers");
+      if (!confirmed) return;
 
       setMigrationLoading(true);
       await changeServersDirectory(chosen);
       setServersDir(chosen);
       if (refreshServers) refreshServers();
-      alert("Servers migrated successfully!");
+      await alert("Servers migrated successfully!", "Migration Success");
     } catch (e: any) {
-      alert("Migration failed: " + (e.message || e));
+      await alert("Migration failed: " + (e.message || e), "Migration Error");
     } finally {
       setMigrationLoading(false);
     }
@@ -147,7 +150,7 @@ export default function Settings({ refreshServers }: SettingsProps) {
     if (taskSubmitting) return; // prevent double submission
     const actionVal = taskAction === "custom" ? taskCustomCommand : taskAction;
     if (!actionVal.trim()) {
-      alert("Please specify a command or action");
+      await alert("Please specify a command or action", "Invalid Input");
       return;
     }
     const serverName = taskServerId === "all" ? "All Servers" : (servers.find((s: ServerInstance) => s.id === taskServerId)?.name || "Unknown Server");
@@ -171,19 +174,20 @@ export default function Settings({ refreshServers }: SettingsProps) {
       setShowModal(false);
       setEditingTask(null);
     } catch (err: any) {
-      alert("Failed to save scheduled task: " + err);
+      await alert("Failed to save scheduled task: " + err, "Save Task Error");
     } finally {
       setTaskSubmitting(false);
     }
   };
 
   const handleDeleteTask = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this scheduled task?")) return;
+    const confirmed = await dangerConfirm("Are you sure you want to delete this scheduled task?", "Delete Scheduled Task");
+    if (!confirmed) return;
     try {
       await deleteScheduledTask(id);
       loadTasks();
     } catch (err: any) {
-      alert("Failed to delete task: " + err);
+      await alert("Failed to delete task: " + err, "Delete Task Error");
     }
   };
 

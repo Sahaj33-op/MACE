@@ -5,9 +5,11 @@ package launcher
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 func getChildPids(parentPid int, visited map[int]bool) []int {
@@ -65,3 +67,14 @@ func getProcessResources(rootPid int, pids []int) (float64, float64, error) {
 
 	return totalCPU, totalMem, nil
 }
+
+// isProcessRunning checks if a process is still active on Unix.
+func isProcessRunning(pid int) bool {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	err = proc.Signal(syscall.Signal(0))
+	return err == nil
+}
+
