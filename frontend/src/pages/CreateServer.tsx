@@ -256,23 +256,43 @@ export default function CreateServer({ refreshServers, setActiveTab }: CreateSer
             </p>
           </div>
 
-          <div className="form-group" style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.25rem 0" }}>
-            <input
-              id="agreeEula"
-              type="checkbox"
-              checked={agreeEula}
-              onChange={(e) => setAgreeEula(e.target.checked)}
-              style={{
-                marginTop: "0.25rem",
-                width: "18px",
-                height: "18px",
-                cursor: "pointer",
-                accentColor: "var(--btn-primary-inner-color)",
-              }}
-            />
-            <label htmlFor="agreeEula" style={{ fontSize: "0.9rem", color: "var(--text-color)", cursor: "pointer", lineHeight: "1.4" }}>
-              I agree to the <span onClick={() => BrowserOpenURL("https://www.minecraft.net/eula")} style={{ color: "var(--btn-primary-inner-color)", textDecoration: "underline" }}>Minecraft End User License Agreement (EULA)</span> to create this server.
-            </label>
+          <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: "0.4rem", padding: "0.25rem 0" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+              <input
+                id="agreeEula"
+                type="checkbox"
+                checked={agreeEula}
+                onChange={(e) => setAgreeEula(e.target.checked)}
+                style={{
+                  marginTop: "0.25rem",
+                  width: "18px",
+                  height: "18px",
+                  cursor: "pointer",
+                  accentColor: "var(--btn-primary-inner-color)",
+                }}
+              />
+              <label htmlFor="agreeEula" style={{ fontSize: "0.9rem", color: "var(--text-color)", cursor: "pointer", lineHeight: "1.4" }}>
+                I agree to the Minecraft End User License Agreement (EULA) to create this server.
+              </label>
+            </div>
+            <div style={{ marginLeft: "1.9rem" }}>
+              <button
+                type="button"
+                onClick={() => BrowserOpenURL("https://www.minecraft.net/eula")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  color: "var(--btn-primary-inner-color)",
+                  textDecoration: "underline",
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Read Minecraft EULA
+              </button>
+            </div>
           </div>
 
           <button
