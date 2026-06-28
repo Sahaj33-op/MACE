@@ -101,8 +101,18 @@ func StartServer(id string, dir string, javaPath string, memoryMB int, watchdogE
 	if useScript {
 		jvmArgsFile := filepath.Join(dir, "user_jvm_args.txt")
 		var jvmArgsList []string
-		for _, arg := range parsedArgs {
-			if strings.HasPrefix(arg, "-") && arg != "-jar" {
+		for i := 0; i < len(parsedArgs); i++ {
+			arg := parsedArgs[i]
+			if arg == "-jar" {
+				break
+			}
+			if arg == "-cp" || arg == "-classpath" || arg == "--class-path" || arg == "-m" || arg == "--module" || arg == "--module-path" || arg == "-p" || arg == "--upgrade-module-path" {
+				jvmArgsList = append(jvmArgsList, arg)
+				if i+1 < len(parsedArgs) {
+					i++
+					jvmArgsList = append(jvmArgsList, parsedArgs[i])
+				}
+			} else if strings.HasPrefix(arg, "-") {
 				jvmArgsList = append(jvmArgsList, arg)
 			}
 		}
