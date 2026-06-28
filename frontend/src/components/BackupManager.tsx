@@ -1,25 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
-import type { BackupItem } from "../ipc/types";
-import { listBackups, restoreBackup, deleteBackup, createBackupWithOptions } from "../ipc/serverAPI";
-import { Archive, RotateCcw, Trash2, Plus, Loader2, AlertTriangle } from "lucide-react";
+import type { BackupItem, ServerInstance } from "../ipc/types";
+import { listBackups, restoreBackup, deleteBackup, createBackupWithOptions, updateServerConfig, browseForBackupDir, showConfirmDialog } from "../ipc/serverAPI";
+import { Archive, RotateCcw, Trash2, Plus, Loader2, AlertTriangle, FolderOpen } from "lucide-react";
 
 interface BackupManagerProps {
-  serverId: string;
-  serverName: string;
-  backupPath: string;
+  server: ServerInstance;
+  refreshServers: () => void;
 }
 
-export default function BackupManager({ serverId, backupPath }: BackupManagerProps) {
+export default function BackupManager({ server, refreshServers }: BackupManagerProps) {
+  const serverId = server.id;
   const [backups, setBackups] = useState<BackupItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restoringName, setRestoringName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Backup configurations state
+  const [backupPath, setBackupPath] = useState(server.backupPath || "");
+  const [backupSchedule, setBackupSchedule] = useState(server.backupSchedule || "off");
+  const [backupRetention, setBackupRetention] = useState(server.backupRetention || 5);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
   // Custom backup options
-  const [incWorld, setIncWorld] = useState(true);
-  const [incPlugins, setIncPlugins] = useState(true);
-  const [incConfigs, setIncConfigs] = useState(true);
+  const [incWorld, setIncWorld] = useState(server.backupIncludeWorld !== false);
+  const [incPlugins, setIncPlugins] = useState(!!server.backupIncludePlugins);
+  const [incConfigs, setIncConfigs] = useState(server.backupIncludeConfigs !== false);
 
   const fetchBackups = useCallback(async () => {
     setLoading(true);
@@ -56,7 +62,8 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
   };
 
   const handleRestore = async (fileName: string) => {
-    const confirmed = window.confirm(
+    const confirmed = await showConfirmDialog(
+      "Restore Backup",
       `Are you sure you want to restore "${fileName}"?\n\nThis will stop the server (if running), archive the current world, and replace it with this backup.`
     );
     if (!confirmed) return;
@@ -75,7 +82,10 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
   };
 
   const handleDelete = async (fileName: string) => {
-    const confirmed = window.confirm(`Delete backup "${fileName}"? This cannot be undone.`);
+    const confirmed = await showConfirmDialog(
+      "Delete Backup",
+      `Delete backup "${fileName}"? This cannot be undone.`
+    );
     if (!confirmed) return;
 
     setError(null);
@@ -110,8 +120,41 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
     return `${sizeKB} KB`;
   };
 
+  const handleSaveSettings = async () => {
+    setSettingsSaving(true);
+    setError(null);
+    try {
+      await updateServerConfig({
+        id: server.id,
+        name: server.name,
+        javaPath: server.javaPath,
+        memoryMB: server.memoryMB,
+        port: server.port,
+        watchdog: server.watchdog,
+        rawProps: "",
+        version: server.version,
+        type: server.type,
+        backupPath,
+        playitEnabled: server.playitEnabled,
+        jvmArgs: server.jvmArgs || "",
+        backupSchedule,
+        backupRetention: Number(backupRetention),
+        backupIncludeWorld: incWorld,
+        backupIncludePlugins: incPlugins,
+        backupIncludeConfigs: incConfigs,
+      });
+      refreshServers();
+      alert("Backup settings saved successfully!");
+    } catch (err: any) {
+      setError("Failed to save backup settings: " + (err.message || err));
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   return (
-    <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -265,17 +308,104 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
                 <button
                   onClick={() => handleDelete(backup.fileName)}
                   disabled={restoringName !== null}
-                  className="button-tertiary"
+                  className="button-danger"
                   title="Delete this backup"
                   style={{ display: "flex", alignItems: "center", gap: "0.4rem", margin: 0, padding: "0.4rem 0.75rem" }}
                 >
                   <Trash2 size={14} />
+                  Delete
                 </button>
               </div>
             </div>
           ))}
         </div>
       )}
+    </div>
+
+      {/* Backup Settings Card */}
+      <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <FolderOpen size={18} style={{ color: "var(--btn-primary-inner-color)" }} />
+          <h2 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>Backup Settings</h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {/* Backup Directory Path */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-color)" }}>Backup Directory Path</label>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input
+                type="text"
+                value={backupPath}
+                onChange={(e) => setBackupPath(e.target.value)}
+                placeholder="Default: server/backups/"
+                style={{ flex: 1, height: "40px" }}
+              />
+              <button
+                type="button"
+                className="button-normal"
+                onClick={async () => {
+                  try {
+                    const dir = await browseForBackupDir();
+                    if (dir) setBackupPath(dir);
+                  } catch {
+                    alert("Failed to open directory picker.");
+                  }
+                }}
+                style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}
+              >
+                <FolderOpen size={14} /> Browse
+              </button>
+            </div>
+            <p style={{ fontSize: "0.72rem", color: "var(--accent-color)", margin: 0 }}>
+              Tip: Use a separate drive or dedicated folder to protect server backups from data loss.
+            </p>
+          </div>
+
+          {/* Automated Backup Schedule */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-color)" }}>Automated Backup Schedule</label>
+            <select
+              className="form-input"
+              value={backupSchedule}
+              onChange={(e) => setBackupSchedule(e.target.value)}
+              style={{ width: "100%", height: "40px", background: "var(--input-bg-color)", border: "2px solid var(--hr-top-color)", color: "var(--text-color)", padding: "0 0.5rem" }}
+            >
+              <option value="off">Disabled</option>
+              <option value="hourly">Hourly</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+
+          {/* Backup Retention Policy */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-color)" }}>Backup Retention Policy (Keep last N backups)</label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={backupRetention}
+              onChange={(e) => setBackupRetention(Number(e.target.value))}
+              style={{ width: "100%", height: "40px" }}
+            />
+          </div>
+
+          {/* Save Button */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+            <button
+              type="button"
+              className="button-primary"
+              onClick={handleSaveSettings}
+              disabled={settingsSaving}
+              style={{ margin: 0, padding: "0.5rem 1.25rem", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              {settingsSaving && <Loader2 size={14} className="spin" />}
+              Save Backup Settings
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

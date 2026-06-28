@@ -197,6 +197,28 @@ export namespace servermanager {
 	        this.source = source["source"];
 	    }
 	}
+	export class ScheduledTask {
+	    id: string;
+	    serverId: string;
+	    serverName: string;
+	    cronExpression: string;
+	    action: string;
+	    lastRun: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ScheduledTask(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.serverId = source["serverId"];
+	        this.serverName = source["serverName"];
+	        this.cronExpression = source["cronExpression"];
+	        this.action = source["action"];
+	        this.lastRun = source["lastRun"];
+	    }
+	}
 	export class ServerInstance {
 	    id: string;
 	    name: string;
@@ -284,6 +306,11 @@ export namespace servermanager {
 	    backupPath: string;
 	    playitEnabled: boolean;
 	    jvmArgs: string;
+	    backupSchedule: string;
+	    backupRetention: number;
+	    backupIncludeWorld: boolean;
+	    backupIncludePlugins: boolean;
+	    backupIncludeConfigs: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateConfigPayload(source);
@@ -303,6 +330,11 @@ export namespace servermanager {
 	        this.backupPath = source["backupPath"];
 	        this.playitEnabled = source["playitEnabled"];
 	        this.jvmArgs = source["jvmArgs"];
+	        this.backupSchedule = source["backupSchedule"];
+	        this.backupRetention = source["backupRetention"];
+	        this.backupIncludeWorld = source["backupIncludeWorld"];
+	        this.backupIncludePlugins = source["backupIncludePlugins"];
+	        this.backupIncludeConfigs = source["backupIncludeConfigs"];
 	    }
 	}
 

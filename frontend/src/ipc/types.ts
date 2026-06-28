@@ -68,3 +68,12 @@ export interface BackupItem {
   sizeKB: number;
   createdAt: string;
 }
+
+export interface ScheduledTask {
+  id: string;
+  serverId: string;
+  serverName: string;
+  cronExpression: string;
+  action: string;
+  lastRun?: string;
+}

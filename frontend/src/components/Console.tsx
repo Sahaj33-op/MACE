@@ -312,8 +312,8 @@ export default function Console({ serverId, serverName }: ConsoleProps) {
               </div>
             ) : (
               logs.map((line, idx) => (
-                <div key={idx} style={{ minHeight: "18px", display: "flex", alignItems: "flex-start", gap: "0.5rem", justifyContent: "space-between", width: "100%" }}>
-                  <div style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>{formatLogLine(line.text)}</div>
+                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", justifyContent: "space-between", width: "100%" }}>
+                  <div style={{ flex: 1, minWidth: 0, wordBreak: "break-all", whiteSpace: "pre-wrap", lineHeight: "1.4" }}>{formatLogLine(line.text)}</div>
                   {line.count > 1 && (
                     <span
                       style={{

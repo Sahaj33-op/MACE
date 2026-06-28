@@ -32,9 +32,13 @@ export function CreateBackup(arg1:string):Promise<servermanager.BackupItem>;
 
 export function CreateBackupWithOptions(arg1:string,arg2:boolean,arg3:boolean,arg4:boolean):Promise<servermanager.BackupItem>;
 
+export function CreateScheduledTask(arg1:servermanager.ScheduledTask):Promise<servermanager.ScheduledTask>;
+
 export function CreateServer(arg1:servermanager.CreateServerPayload):Promise<servermanager.ServerInstance>;
 
 export function DeleteBackup(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteScheduledTask(arg1:string):Promise<void>;
 
 export function DeleteServer(arg1:string):Promise<void>;
 
@@ -76,6 +80,8 @@ export function ListBackups(arg1:string):Promise<Array<servermanager.BackupItem>
 
 export function ListContent(arg1:string,arg2:string):Promise<Array<servermanager.ContentItem>>;
 
+export function ListScheduledTasks():Promise<Array<servermanager.ScheduledTask>>;
+
 export function ListServers():Promise<Array<servermanager.ServerInstance>>;
 
 export function PickServersDirectory():Promise<string>;
@@ -100,6 +106,8 @@ export function SelectServersDir():Promise<string>;
 
 export function SendCommand(arg1:string,arg2:string):Promise<void>;
 
+export function ShowConfirmDialog(arg1:string,arg2:string):Promise<boolean>;
+
 export function StartServer(arg1:string):Promise<string>;
 
 export function StopServer(arg1:string):Promise<string>;
@@ -109,6 +117,8 @@ export function SubscribeConsole(arg1:string):Promise<void>;
 export function ToggleContent(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<void>;
 
 export function UnsubscribeConsole(arg1:string):Promise<void>;
+
+export function UpdateScheduledTask(arg1:servermanager.ScheduledTask):Promise<void>;
 
 export function UpdateServerConfig(arg1:servermanager.UpdateConfigPayload):Promise<void>;
 

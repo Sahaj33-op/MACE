@@ -58,12 +58,20 @@ export function CreateBackupWithOptions(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateBackupWithOptions'](arg1, arg2, arg3, arg4);
 }
 
+export function CreateScheduledTask(arg1) {
+  return window['go']['main']['App']['CreateScheduledTask'](arg1);
+}
+
 export function CreateServer(arg1) {
   return window['go']['main']['App']['CreateServer'](arg1);
 }
 
 export function DeleteBackup(arg1, arg2) {
   return window['go']['main']['App']['DeleteBackup'](arg1, arg2);
+}
+
+export function DeleteScheduledTask(arg1) {
+  return window['go']['main']['App']['DeleteScheduledTask'](arg1);
 }
 
 export function DeleteServer(arg1) {
@@ -146,6 +154,10 @@ export function ListContent(arg1, arg2) {
   return window['go']['main']['App']['ListContent'](arg1, arg2);
 }
 
+export function ListScheduledTasks() {
+  return window['go']['main']['App']['ListScheduledTasks']();
+}
+
 export function ListServers() {
   return window['go']['main']['App']['ListServers']();
 }
@@ -194,6 +206,10 @@ export function SendCommand(arg1, arg2) {
   return window['go']['main']['App']['SendCommand'](arg1, arg2);
 }
 
+export function ShowConfirmDialog(arg1, arg2) {
+  return window['go']['main']['App']['ShowConfirmDialog'](arg1, arg2);
+}
+
 export function StartServer(arg1) {
   return window['go']['main']['App']['StartServer'](arg1);
 }
@@ -212,6 +228,10 @@ export function ToggleContent(arg1, arg2, arg3, arg4) {
 
 export function UnsubscribeConsole(arg1) {
   return window['go']['main']['App']['UnsubscribeConsole'](arg1);
+}
+
+export function UpdateScheduledTask(arg1) {
+  return window['go']['main']['App']['UpdateScheduledTask'](arg1);
 }
 
 export function UpdateServerConfig(arg1) {

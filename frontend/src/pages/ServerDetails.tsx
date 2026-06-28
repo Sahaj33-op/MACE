@@ -174,7 +174,7 @@ export default function ServerDetails({ server, refreshServers, onBack, onServer
         ) : activeTab === "mods" ? (
           <InstanceContentManager key={server.id} server={server} />
         ) : activeTab === "backups" ? (
-          <BackupManager key={server.id} serverId={server.id} serverName={server.name} backupPath={server.backupPath || ""} />
+          <BackupManager key={server.id} server={server} refreshServers={refreshServers} />
         ) : (
           <ConfigEditor key={server.id} server={server} refreshServers={refreshServers} onServerDeleted={onServerDeleted} />
         )}

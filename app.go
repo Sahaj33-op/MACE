@@ -56,6 +56,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 	servermanager.StartBackupScheduler()
+	servermanager.StartCronScheduler()
 }
 
 // domReady is called when the DOM is fully loaded
@@ -742,4 +743,39 @@ $s.Save()
 	}
 
 	return nil
+}
+
+// ListScheduledTasks returns all scheduled tasks.
+func (a *App) ListScheduledTasks() ([]servermanager.ScheduledTask, error) {
+	return servermanager.ListScheduledTasks()
+}
+
+// CreateScheduledTask adds a new scheduled task.
+func (a *App) CreateScheduledTask(task servermanager.ScheduledTask) (servermanager.ScheduledTask, error) {
+	return servermanager.CreateScheduledTask(task)
+}
+
+// UpdateScheduledTask updates an existing scheduled task.
+func (a *App) UpdateScheduledTask(task servermanager.ScheduledTask) error {
+	return servermanager.UpdateScheduledTask(task)
+}
+
+// DeleteScheduledTask removes a scheduled task.
+func (a *App) DeleteScheduledTask(id string) error {
+	return servermanager.DeleteScheduledTask(id)
+}
+
+// ShowConfirmDialog shows a native OS question dialog and returns true if the user confirmed.
+func (a *App) ShowConfirmDialog(title, message string) (bool, error) {
+	selection, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         title,
+		Message:       message,
+		DefaultButton: "No",
+		Buttons:       []string{"Yes", "No"},
+	})
+	if err != nil {
+		return false, err
+	}
+	return selection == "Yes", nil
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import type { ServerInstance } from "../ipc/types";
-import { Save, AlertCircle, FileText, Settings, FolderOpen, Trash2 } from "lucide-react";
-import { getServerProperties, updateServerConfig, detectJava, browseForBackupDir, deleteServer } from "../ipc/serverAPI";
+import { Save, AlertCircle, FileText, Settings, Trash2 } from "lucide-react";
+import { getServerProperties, updateServerConfig, detectJava, deleteServer } from "../ipc/serverAPI";
 
 interface ConfigEditorProps {
   server: ServerInstance;
@@ -196,16 +196,8 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
   const [javaPath, setJavaPath] = useState(server.javaPath);
   const [version, setVersion] = useState(server.version);
   const [type, setType] = useState(server.type);
-  const [backupPath, setBackupPath] = useState(server.backupPath || "");
   const [jvmArgs, setJvmArgs] = useState(server.jvmArgs || "");
   const [playitEnabled, setPlayitEnabled] = useState(server.playitEnabled);
-  
-  // Backup configurations state
-  const [backupSchedule, setBackupSchedule] = useState(server.backupSchedule || "off");
-  const [backupRetention, setBackupRetention] = useState(server.backupRetention || 5);
-  const [backupIncludeWorld, setBackupIncludeWorld] = useState(server.backupIncludeWorld !== false);
-  const [backupIncludePlugins, setBackupIncludePlugins] = useState(!!server.backupIncludePlugins);
-  const [backupIncludeConfigs, setBackupIncludeConfigs] = useState(server.backupIncludeConfigs !== false);
 
   // Java Autocomplete List
   const [javas, setJavas] = useState<{ path: string; version: string }[]>([]);
@@ -227,14 +219,8 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
     setJavaPath(server.javaPath);
     setVersion(server.version);
     setType(server.type);
-    setBackupPath(server.backupPath || "");
     setJvmArgs(server.jvmArgs || "");
     setPlayitEnabled(server.playitEnabled);
-    setBackupSchedule(server.backupSchedule || "off");
-    setBackupRetention(server.backupRetention || 5);
-    setBackupIncludeWorld(server.backupIncludeWorld !== false);
-    setBackupIncludePlugins(!!server.backupIncludePlugins);
-    setBackupIncludeConfigs(server.backupIncludeConfigs !== false);
 
     detectJava().then(setJavas).catch(console.error);
 
@@ -272,14 +258,14 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
         rawProps: activeSubTab === "properties" ? rawProperties : "",
         version,
         type,
-        backupPath,
+        backupPath: server.backupPath || "",
         playitEnabled,
         jvmArgs,
-        backupSchedule,
-        backupRetention: Number(backupRetention),
-        backupIncludeWorld,
-        backupIncludePlugins,
-        backupIncludeConfigs,
+        backupSchedule: server.backupSchedule || "off",
+        backupRetention: server.backupRetention || 5,
+        backupIncludeWorld: server.backupIncludeWorld !== false,
+        backupIncludePlugins: !!server.backupIncludePlugins,
+        backupIncludeConfigs: server.backupIncludeConfigs !== false,
       });
       setSaveSuccess(true);
       refreshServers();
@@ -426,104 +412,10 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
               </div>
             </div>
 
-            {/* Section 4: Backup Configurations */}
-            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "1.5rem" }}>
-              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
-                4. Backup Configurations
-              </h3>
-              <div style={rowStyle}>
-                <label style={labelStyle}>Backup Directory Path</label>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <input
-                    type="text"
-                    value={backupPath}
-                    onChange={(e) => setBackupPath(e.target.value)}
-                    placeholder="Default: server/backups/"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="button-normal"
-                    onClick={async () => {
-                      try {
-                        const dir = await browseForBackupDir();
-                        if (dir) setBackupPath(dir);
-                      } catch {
-                        alert("Failed to open directory picker.");
-                      }
-                    }}
-                    style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}
-                  >
-                    <FolderOpen size={14} /> Browse
-                  </button>
-                </div>
-                <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
-                  Tip: Use a separate drive or dedicated folder to protect server backups from data loss.
-                </p>
-              </div>
-
-              <div style={rowStyle}>
-                <label style={labelStyle}>Automated Backup Schedule</label>
-                <select
-                  className="form-input"
-                  value={backupSchedule}
-                  onChange={(e) => setBackupSchedule(e.target.value)}
-                  style={{ width: "100%", height: "40px", background: "var(--input-bg-color)", border: "2px solid var(--hr-top-color)", color: "var(--text-color)", padding: "0 0.5rem" }}
-                >
-                  <option value="off">Disabled</option>
-                  <option value="hourly">Hourly</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </div>
-
-              <div style={rowStyle}>
-                <label style={labelStyle}>Backup Retention Policy (Keep last N backups)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={backupRetention}
-                  onChange={(e) => setBackupRetention(Number(e.target.value))}
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              <div style={rowStyle}>
-                <label style={labelStyle}>Default Auto-Backup Contents</label>
-                <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.25rem" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={backupIncludeWorld}
-                      onChange={(e) => setBackupIncludeWorld(e.target.checked)}
-                    />
-                    World
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={backupIncludePlugins}
-                      onChange={(e) => setBackupIncludePlugins(e.target.checked)}
-                    />
-                    Plugins / Mods
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={backupIncludeConfigs}
-                      onChange={(e) => setBackupIncludeConfigs(e.target.checked)}
-                    />
-                    Configs
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 5: Services & Automated Tasks */}
+            {/* Section 4: Services & Automated Tasks */}
             <div>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--accent-color)" }}>
-                5. System Services & Auto-recovery
+                4. System Services & Auto-recovery
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 

@@ -1,4 +1,4 @@
-import type { ServerInstance, JavaInstall, ServerType, ContentItem, ModSearchResult, AppSettings, BackupItem } from "./types";
+import type { ServerInstance, JavaInstall, ServerType, ContentItem, ModSearchResult, AppSettings, BackupItem, ScheduledTask } from "./types";
 
 // Type for the Wails Go App bindings and runtime helper
 declare global {
@@ -97,6 +97,12 @@ declare global {
           SelectServersDir(): Promise<string>;
           GetDefaultServersDir(): Promise<string>;
           CompleteSetup(serversDir: string, createShortcut: boolean): Promise<void>;
+          // Scheduled Tasks
+          ListScheduledTasks(): Promise<ScheduledTask[]>;
+          CreateScheduledTask(task: ScheduledTask): Promise<ScheduledTask>;
+          UpdateScheduledTask(task: ScheduledTask): Promise<void>;
+          DeleteScheduledTask(id: string): Promise<void>;
+          ShowConfirmDialog(title: string, message: string): Promise<boolean>;
         };
       };
     };
@@ -415,4 +421,26 @@ export async function getDefaultServersDir(): Promise<string> {
 
 export async function completeSetup(serversDir: string, createShortcut: boolean): Promise<void> {
   return window.go.main.App.CompleteSetup(serversDir, createShortcut);
+}
+
+// ---- Scheduled Tasks ----
+
+export async function listScheduledTasks(): Promise<ScheduledTask[]> {
+  return window.go.main.App.ListScheduledTasks();
+}
+
+export async function createScheduledTask(task: ScheduledTask): Promise<ScheduledTask> {
+  return window.go.main.App.CreateScheduledTask(task);
+}
+
+export async function updateScheduledTask(task: ScheduledTask): Promise<void> {
+  return window.go.main.App.UpdateScheduledTask(task);
+}
+
+export async function deleteScheduledTask(id: string): Promise<void> {
+  return window.go.main.App.DeleteScheduledTask(id);
+}
+
+export async function showConfirmDialog(title: string, message: string): Promise<boolean> {
+  return window.go.main.App.ShowConfirmDialog(title, message);
 }
