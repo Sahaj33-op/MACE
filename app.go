@@ -506,6 +506,31 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 	}
 
 	// 2. Migrate each server folder
+	type migrationStep struct {
+		oldPath string
+		newPath string
+	}
+	var migrated []migrationStep
+	var migrationErr error
+
+	defer func() {
+		if migrationErr != nil {
+			// Rollback migrated directories in reverse order
+			for i := len(migrated) - 1; i >= 0; i-- {
+				step := migrated[i]
+				if utils.FileExists(step.newPath) {
+					// Try rename back first
+					if rollbackRenameErr := os.Rename(step.newPath, step.oldPath); rollbackRenameErr != nil {
+						// If rename back fails, copy back
+						if copyBackErr := utils.CopyDir(step.newPath, step.oldPath); copyBackErr == nil {
+							os.RemoveAll(step.newPath)
+						}
+					}
+				}
+			}
+		}
+	}()
+
 	for _, inst := range servers {
 		oldServerDir := filepath.Join(oldDirAbs, inst.ID)
 		newServerDir := filepath.Join(newDirAbs, inst.ID)
@@ -515,68 +540,89 @@ func (a *App) ChangeServersDirectory(newDir string) error {
 		}
 
 		// Reject destinations that are inside or equal to oldServerDir to prevent recursive copy/move
-		rel, err := filepath.Rel(oldServerDir, newServerDir)
-		if err == nil && !strings.HasPrefix(rel, "..") {
-			return fmt.Errorf("invalid destination: %s is inside or equal to %s", newServerDir, oldServerDir)
+		rel, relErr := filepath.Rel(oldServerDir, newServerDir)
+		if relErr == nil && !strings.HasPrefix(rel, "..") {
+			migrationErr = fmt.Errorf("invalid destination: %s is inside or equal to %s", newServerDir, oldServerDir)
+			return migrationErr
 		}
 
 		// Reject move if destination already exists
-		if _, err := os.Stat(newServerDir); err == nil || !os.IsNotExist(err) {
-			return fmt.Errorf("destination directory already exists: %s", newServerDir)
+		if _, statErr := os.Stat(newServerDir); statErr == nil || !os.IsNotExist(statErr) {
+			migrationErr = fmt.Errorf("destination directory already exists: %s", newServerDir)
+			return migrationErr
 		}
 
 		// Try to Rename. If it fails (like across partitions), copy and remove.
-		err = os.Rename(oldServerDir, newServerDir)
-		if err != nil {
-			if err := utils.CopyDir(oldServerDir, newServerDir); err != nil {
-				return fmt.Errorf("failed to copy server %s: %w", inst.ID, err)
+		moved := false
+		if renameErr := os.Rename(oldServerDir, newServerDir); renameErr == nil {
+			moved = true
+		} else {
+			if copyErr := utils.CopyDir(oldServerDir, newServerDir); copyErr != nil {
+				// Clean up any partially copied files in newServerDir
+				os.RemoveAll(newServerDir)
+				migrationErr = fmt.Errorf("failed to copy server %s: %w", inst.ID, copyErr)
+				return migrationErr
 			}
-			if err := os.RemoveAll(oldServerDir); err != nil {
-				fmt.Printf("Warning: failed to remove old directory %s: %v\n", oldServerDir, err)
+			moved = true
+			if removeErr := os.RemoveAll(oldServerDir); removeErr != nil {
+				fmt.Printf("Warning: failed to remove old directory %s: %v\n", oldServerDir, removeErr)
 			}
+		}
+
+		if moved {
+			migrated = append(migrated, migrationStep{
+				oldPath: oldServerDir,
+				newPath: newServerDir,
+			})
 		}
 
 		// 3. Update paths in metadata.json
 		metaFile := filepath.Join(newServerDir, "metadata.json")
-		data, err := os.ReadFile(metaFile)
-		if err != nil {
-			return fmt.Errorf("failed to read metadata of migrated server %s: %w", inst.ID, err)
+		data, readErr := os.ReadFile(metaFile)
+		if readErr != nil {
+			migrationErr = fmt.Errorf("failed to read metadata of migrated server %s: %w", inst.ID, readErr)
+			return migrationErr
 		}
 
 		var updatedInst servermanager.ServerInstance
-		if err := json.Unmarshal(data, &updatedInst); err != nil {
-			return fmt.Errorf("failed to parse metadata of migrated server %s: %w", inst.ID, err)
+		if unmarshalErr := json.Unmarshal(data, &updatedInst); unmarshalErr != nil {
+			migrationErr = fmt.Errorf("failed to parse metadata of migrated server %s: %w", inst.ID, unmarshalErr)
+			return migrationErr
 		}
 
 		updatedInst.Path = newServerDir
 		
 		// If BackupPath was relative to old directory, update it
 		if strings.HasPrefix(updatedInst.BackupPath, oldServerDir) {
-			rel, err := filepath.Rel(oldServerDir, updatedInst.BackupPath)
-			if err == nil {
+			rel, relErr := filepath.Rel(oldServerDir, updatedInst.BackupPath)
+			if relErr == nil {
 				updatedInst.BackupPath = filepath.Join(newServerDir, rel)
 			}
 		}
 
-		updatedData, err := json.MarshalIndent(updatedInst, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to serialize metadata of migrated server %s: %w", inst.ID, err)
+		updatedData, marshalErr := json.MarshalIndent(updatedInst, "", "  ")
+		if marshalErr != nil {
+			migrationErr = fmt.Errorf("failed to serialize metadata of migrated server %s: %w", inst.ID, marshalErr)
+			return migrationErr
 		}
 
-		if err := os.WriteFile(metaFile, updatedData, 0644); err != nil {
-			return fmt.Errorf("failed to write updated metadata of migrated server %s: %w", inst.ID, err)
+		if writeErr := os.WriteFile(metaFile, updatedData, 0644); writeErr != nil {
+			migrationErr = fmt.Errorf("failed to write updated metadata of migrated server %s: %w", inst.ID, writeErr)
+			return migrationErr
 		}
 	}
 
 	// 4. Update the cached AppSettings and write to settings.json
-	settings, err := utils.LoadSettings()
-	if err != nil {
-		return fmt.Errorf("failed to load settings: %w", err)
+	settings, loadErr := utils.LoadSettings()
+	if loadErr != nil {
+		migrationErr = fmt.Errorf("failed to load settings: %w", loadErr)
+		return migrationErr
 	}
 
 	settings.ServersDir = newDirAbs
-	if err := utils.SaveSettings(settings); err != nil {
-		return fmt.Errorf("failed to save new servers directory: %w", err)
+	if saveErr := utils.SaveSettings(settings); saveErr != nil {
+		migrationErr = fmt.Errorf("failed to save new servers directory: %w", saveErr)
+		return migrationErr
 	}
 
 	return nil
