@@ -4,7 +4,11 @@ import { detectJava, getAppSettings, saveAppSettings, validateCurseForgeKey, pic
 import type { JavaInstall } from "../ipc/types";
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 
-export default function Settings() {
+interface SettingsProps {
+  refreshServers?: () => void;
+}
+
+export default function Settings({ refreshServers }: SettingsProps) {
   const [javas, setJavas] = useState<JavaInstall[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -82,6 +86,7 @@ export default function Settings() {
       setMigrationLoading(true);
       await changeServersDirectory(chosen);
       setServersDir(chosen);
+      if (refreshServers) refreshServers();
       alert("Servers migrated successfully!");
     } catch (e: any) {
       alert("Migration failed: " + (e.message || e));

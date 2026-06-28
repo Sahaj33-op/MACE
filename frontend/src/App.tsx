@@ -71,7 +71,7 @@ export default function App() {
       case "import":
         return <ImportServer refreshServers={refreshServers} setActiveTab={setActiveTab} />;
       case "settings":
-        return <Settings />;
+        return <Settings refreshServers={refreshServers} />;
       default:
         return <Dashboard servers={servers} setActiveTab={setActiveTab} refreshServers={refreshServers} onManageInstance={(id) => { setSelectedInstanceId(id); setActiveTab("server-details"); }} />;
     }
