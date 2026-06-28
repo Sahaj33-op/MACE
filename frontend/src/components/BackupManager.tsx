@@ -18,7 +18,7 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
 
   // Custom backup options
   const [incWorld, setIncWorld] = useState(true);
-  const [incPlugins, setIncPlugins] = useState(false);
+  const [incPlugins, setIncPlugins] = useState(true);
   const [incConfigs, setIncConfigs] = useState(true);
 
   const fetchBackups = useCallback(async () => {
