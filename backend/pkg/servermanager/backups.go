@@ -36,6 +36,11 @@ func GetBackupDir(inst *ServerInstance) string {
 // CreateBackup compresses the world folder and configuration files into a
 // timestamped zip archive inside the backup directory.
 func CreateBackup(id string) (*BackupItem, error) {
+	return CreateBackupWithOptions(id, true, false, true)
+}
+
+// CreateBackupWithOptions compresses selected components (world, plugins, configs) of a server.
+func CreateBackupWithOptions(id string, includeWorld, includePlugins, includeConfigs bool) (*BackupItem, error) {
 	inst, err := LoadServer(id)
 	if err != nil {
 		return nil, err
@@ -44,11 +49,6 @@ func CreateBackup(id string) (*BackupItem, error) {
 	backupDir := GetBackupDir(inst)
 	if err := utils.EnsureDir(backupDir); err != nil {
 		return nil, fmt.Errorf("failed to create backup directory: %w", err)
-	}
-
-	worldDir := filepath.Join(inst.Path, inst.World)
-	if _, err := os.Stat(worldDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("world directory '%s' does not exist, nothing to back up", inst.World)
 	}
 
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
@@ -64,79 +64,95 @@ func CreateBackup(id string) (*BackupItem, error) {
 	w := zip.NewWriter(zipFile)
 	defer w.Close()
 
-	err = filepath.Walk(worldDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	addDirToZip := func(srcDir string) error {
+		if _, err := os.Stat(srcDir); os.IsNotExist(err) {
+			return nil
 		}
+		return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			relPath, err := filepath.Rel(inst.Path, path)
+			if err != nil {
+				return err
+			}
+			relPath = filepath.ToSlash(relPath)
+			if info.IsDir() {
+				_, err := w.Create(relPath + "/")
+				return err
+			}
+			header, err := zip.FileInfoHeader(info)
+			if err != nil {
+				return err
+			}
+			header.Name = relPath
+			header.Method = zip.Deflate
 
-		relPath, err := filepath.Rel(inst.Path, path)
-		if err != nil {
+			writer, err := w.CreateHeader(header)
+			if err != nil {
+				return err
+			}
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(writer, file)
 			return err
-		}
-		relPath = filepath.ToSlash(relPath)
-
-		if info.IsDir() {
-			_, err := w.Create(relPath + "/")
-			return err
-		}
-
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return err
-		}
-		header.Name = relPath
-		header.Method = zip.Deflate
-
-		writer, err := w.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(writer, file)
-		closeErr := file.Close()
-		if err != nil {
-			return err
-		}
-		return closeErr
-	})
-	if err != nil {
-		os.Remove(zipPath)
-		return nil, fmt.Errorf("failed to archive world: %w", err)
+		})
 	}
 
-	for _, cfgName := range configFiles {
-		cfgPath := filepath.Join(inst.Path, cfgName)
-		if !utils.FileExists(cfgPath) {
-			continue
+	if includeWorld {
+		worldDir := filepath.Join(inst.Path, inst.World)
+		if err := addDirToZip(worldDir); err != nil {
+			os.Remove(zipPath)
+			return nil, fmt.Errorf("failed to archive world: %w", err)
 		}
-		info, err := os.Stat(cfgPath)
-		if err != nil {
-			continue
-		}
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			continue
-		}
-		header.Name = cfgName
-		header.Method = zip.Deflate
+	}
 
-		writer, err := w.CreateHeader(header)
-		if err != nil {
-			continue
+	if includePlugins {
+		pluginsDir := filepath.Join(inst.Path, "plugins")
+		if err := addDirToZip(pluginsDir); err != nil {
+			os.Remove(zipPath)
+			return nil, fmt.Errorf("failed to archive plugins: %w", err)
 		}
-		file, err := os.Open(cfgPath)
-		if err != nil {
-			continue
+		modsDir := filepath.Join(inst.Path, "mods")
+		if err := addDirToZip(modsDir); err != nil {
+			os.Remove(zipPath)
+			return nil, fmt.Errorf("failed to archive mods: %w", err)
 		}
-		if _, err := io.Copy(writer, file); err != nil {
-			launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Failed to archive config file %s: %v", cfgName, err))
+	}
+
+	if includeConfigs {
+		for _, cfgName := range configFiles {
+			cfgPath := filepath.Join(inst.Path, cfgName)
+			if !utils.FileExists(cfgPath) {
+				continue
+			}
+			info, err := os.Stat(cfgPath)
+			if err != nil {
+				continue
+			}
+			header, err := zip.FileInfoHeader(info)
+			if err != nil {
+				continue
+			}
+			header.Name = cfgName
+			header.Method = zip.Deflate
+
+			writer, err := w.CreateHeader(header)
+			if err != nil {
+				continue
+			}
+			file, err := os.Open(cfgPath)
+			if err != nil {
+				continue
+			}
+			if _, err := io.Copy(writer, file); err != nil {
+				launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Failed to archive config file %s: %v", cfgName, err))
+			}
+			file.Close()
 		}
-		file.Close()
 	}
 
 	w.Close()
@@ -154,6 +170,119 @@ func CreateBackup(id string) (*BackupItem, error) {
 		SizeKB:    stat.Size() / 1024,
 		CreatedAt: time.Now().Format(time.RFC3339),
 	}, nil
+}
+
+// EnforceBackupRetention prunes backups in the server's backup directory until the count is <= limit.
+func EnforceBackupRetention(id string, limit int) error {
+	if limit <= 0 {
+		return nil
+	}
+
+	backups, err := ListBackups(id)
+	if err != nil {
+		return err
+	}
+
+	if len(backups) <= limit {
+		return nil
+	}
+
+	inst, err := LoadServer(id)
+	if err != nil {
+		return err
+	}
+	backupDir := GetBackupDir(inst)
+
+	for i := limit; i < len(backups); i++ {
+		fileToDelete := filepath.Join(backupDir, backups[i].FileName)
+		if err := os.Remove(fileToDelete); err != nil {
+			launcher.WriteLog(id, fmt.Sprintf("[MACE] Warning: Failed to delete old backup %s: %v", backups[i].FileName, err))
+		} else {
+			launcher.WriteLog(id, fmt.Sprintf("[MACE] Retention Policy: Deleted old backup %s", backups[i].FileName))
+		}
+	}
+
+	return nil
+}
+
+// StartBackupScheduler starts a background daemon that periodically checks and executes scheduled backups.
+func StartBackupScheduler() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			servers, err := ListServers()
+			if err != nil {
+				continue
+			}
+
+			for _, inst := range servers {
+				if inst.BackupSchedule == "" || inst.BackupSchedule == "off" {
+					continue
+				}
+
+				due := false
+				var lastTime time.Time
+				if inst.LastBackup != "" {
+					lastTime, err = time.Parse(time.RFC3339, inst.LastBackup)
+					if err != nil {
+						due = true
+					}
+				} else {
+					due = true
+				}
+
+				if !due {
+					var duration time.Duration
+					switch inst.BackupSchedule {
+					case "hourly":
+						duration = 1 * time.Hour
+					case "daily":
+						duration = 24 * time.Hour
+					case "weekly":
+						duration = 7 * 24 * time.Hour
+					default:
+						continue
+					}
+
+					if time.Since(lastTime) >= duration {
+						due = true
+					}
+				}
+
+				if due {
+					launcher.WriteLog(inst.ID, "[MACE] Starting scheduled backup...")
+					
+					includeWorld := inst.BackupIncludeWorld
+					includePlugins := inst.BackupIncludePlugins
+					includeConfigs := inst.BackupIncludeConfigs
+					
+					if !includeWorld && !includePlugins && !includeConfigs {
+						includeWorld = true
+						includeConfigs = true
+					}
+
+					retention := inst.BackupRetention
+					if retention <= 0 {
+						retention = 5
+					}
+
+					_, backupErr := CreateBackupWithOptions(inst.ID, includeWorld, includePlugins, includeConfigs)
+					if backupErr != nil {
+						launcher.WriteLog(inst.ID, fmt.Sprintf("[MACE] Scheduled backup failed: %v", backupErr))
+					} else {
+						inst.LastBackup = time.Now().Format(time.RFC3339)
+						SaveServer(&inst)
+
+						if err := EnforceBackupRetention(inst.ID, retention); err != nil {
+							launcher.WriteLog(inst.ID, fmt.Sprintf("[MACE] Retention enforcement failed: %v", err))
+						}
+					}
+				}
+			}
+		}
+	}()
 }
 
 // ListBackups scans the backup directory and returns all backup archives,

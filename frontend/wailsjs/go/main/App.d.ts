@@ -30,6 +30,8 @@ export function CompleteSetup(arg1:string,arg2:boolean):Promise<void>;
 
 export function CreateBackup(arg1:string):Promise<servermanager.BackupItem>;
 
+export function CreateBackupWithOptions(arg1:string,arg2:boolean,arg3:boolean,arg4:boolean):Promise<servermanager.BackupItem>;
+
 export function CreateServer(arg1:servermanager.CreateServerPayload):Promise<servermanager.ServerInstance>;
 
 export function DeleteBackup(arg1:string,arg2:string):Promise<void>;

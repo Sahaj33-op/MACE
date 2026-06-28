@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { BackupItem } from "../ipc/types";
-import { listBackups, createBackup, restoreBackup, deleteBackup } from "../ipc/serverAPI";
+import { listBackups, restoreBackup, deleteBackup, createBackupWithOptions } from "../ipc/serverAPI";
 import { Archive, RotateCcw, Trash2, Plus, Loader2, AlertTriangle } from "lucide-react";
 
 interface BackupManagerProps {
@@ -15,6 +15,11 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
   const [creating, setCreating] = useState(false);
   const [restoringName, setRestoringName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Custom backup options
+  const [incWorld, setIncWorld] = useState(true);
+  const [incPlugins, setIncPlugins] = useState(false);
+  const [incConfigs, setIncConfigs] = useState(true);
 
   const fetchBackups = useCallback(async () => {
     setLoading(true);
@@ -34,10 +39,14 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
   }, [fetchBackups]);
 
   const handleCreate = async () => {
+    if (!incWorld && !incPlugins && !incConfigs) {
+      setError("Please select at least one component to include in the backup.");
+      return;
+    }
     setCreating(true);
     setError(null);
     try {
-      await createBackup(serverId);
+      await createBackupWithOptions(serverId, incWorld, incPlugins, incConfigs);
       await fetchBackups();
     } catch (err: any) {
       setError("Failed to create backup: " + err.message);
@@ -129,6 +138,35 @@ export default function BackupManager({ serverId, backupPath }: BackupManagerPro
           {creating ? <Loader2 size={16} className="spin" /> : <Plus size={16} />}
           {creating ? "Creating..." : "Create Backup"}
         </button>
+      </div>
+
+      {/* Backup components selection */}
+      <div style={{ display: "flex", gap: "1.5rem", padding: "0.75rem 1rem", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--accent-color)" }}>Include:</span>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer", margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={incWorld}
+            onChange={(e) => setIncWorld(e.target.checked)}
+          />
+          World
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer", margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={incPlugins}
+            onChange={(e) => setIncPlugins(e.target.checked)}
+          />
+          Plugins / Mods
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer", margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={incConfigs}
+            onChange={(e) => setIncConfigs(e.target.checked)}
+          />
+          Configs
+        </label>
       </div>
 
       {/* Backup path info */}

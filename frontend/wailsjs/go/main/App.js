@@ -54,6 +54,10 @@ export function CreateBackup(arg1) {
   return window['go']['main']['App']['CreateBackup'](arg1);
 }
 
+export function CreateBackupWithOptions(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['CreateBackupWithOptions'](arg1, arg2, arg3, arg4);
+}
+
 export function CreateServer(arg1) {
   return window['go']['main']['App']['CreateServer'](arg1);
 }

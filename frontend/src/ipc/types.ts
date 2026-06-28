@@ -24,6 +24,12 @@ export interface ServerInstance {
   playitAddress: string;
   jvmArgs: string;
   modpack?: ModpackMeta;
+  backupSchedule?: string;
+  backupRetention?: number;
+  backupIncludeWorld?: boolean;
+  backupIncludePlugins?: boolean;
+  backupIncludeConfigs?: boolean;
+  lastBackup?: string;
 }
 
 export interface JavaInstall {

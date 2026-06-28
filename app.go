@@ -55,6 +55,7 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(a.ctx, "playit-address-updated-"+id, address)
 		}
 	}
+	servermanager.StartBackupScheduler()
 }
 
 // domReady is called when the DOM is fully loaded
@@ -585,6 +586,11 @@ func (a *App) ListBackups(id string) ([]servermanager.BackupItem, error) {
 // CreateBackup compresses the world folder and configs into a timestamped zip.
 func (a *App) CreateBackup(id string) (*servermanager.BackupItem, error) {
 	return servermanager.CreateBackup(id)
+}
+
+// CreateBackupWithOptions compresses selected components into a timestamped zip.
+func (a *App) CreateBackupWithOptions(id string, includeWorld, includePlugins, includeConfigs bool) (*servermanager.BackupItem, error) {
+	return servermanager.CreateBackupWithOptions(id, includeWorld, includePlugins, includeConfigs)
 }
 
 // RestoreBackup restores a server from a backup archive.

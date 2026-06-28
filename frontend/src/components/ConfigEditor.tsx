@@ -199,6 +199,13 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
   const [backupPath, setBackupPath] = useState(server.backupPath || "");
   const [jvmArgs, setJvmArgs] = useState(server.jvmArgs || "");
   const [playitEnabled, setPlayitEnabled] = useState(server.playitEnabled);
+  
+  // Backup configurations state
+  const [backupSchedule, setBackupSchedule] = useState(server.backupSchedule || "off");
+  const [backupRetention, setBackupRetention] = useState(server.backupRetention || 5);
+  const [backupIncludeWorld, setBackupIncludeWorld] = useState(server.backupIncludeWorld !== false);
+  const [backupIncludePlugins, setBackupIncludePlugins] = useState(!!server.backupIncludePlugins);
+  const [backupIncludeConfigs, setBackupIncludeConfigs] = useState(server.backupIncludeConfigs !== false);
 
   // Java Autocomplete List
   const [javas, setJavas] = useState<{ path: string; version: string }[]>([]);
@@ -223,6 +230,11 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
     setBackupPath(server.backupPath || "");
     setJvmArgs(server.jvmArgs || "");
     setPlayitEnabled(server.playitEnabled);
+    setBackupSchedule(server.backupSchedule || "off");
+    setBackupRetention(server.backupRetention || 5);
+    setBackupIncludeWorld(server.backupIncludeWorld !== false);
+    setBackupIncludePlugins(!!server.backupIncludePlugins);
+    setBackupIncludeConfigs(server.backupIncludeConfigs !== false);
 
     detectJava().then(setJavas).catch(console.error);
 
@@ -263,6 +275,11 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
         backupPath,
         playitEnabled,
         jvmArgs,
+        backupSchedule,
+        backupRetention: Number(backupRetention),
+        backupIncludeWorld,
+        backupIncludePlugins,
+        backupIncludeConfigs,
       });
       setSaveSuccess(true);
       refreshServers();
@@ -443,6 +460,63 @@ export default function ConfigEditor({ server, refreshServers, onServerDeleted }
                 <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
                   Tip: Use a separate drive or dedicated folder to protect server backups from data loss.
                 </p>
+              </div>
+
+              <div style={rowStyle}>
+                <label style={labelStyle}>Automated Backup Schedule</label>
+                <select
+                  className="form-input"
+                  value={backupSchedule}
+                  onChange={(e) => setBackupSchedule(e.target.value)}
+                  style={{ width: "100%", height: "40px", background: "var(--input-bg-color)", border: "2px solid var(--hr-top-color)", color: "var(--text-color)", padding: "0 0.5rem" }}
+                >
+                  <option value="off">Disabled</option>
+                  <option value="hourly">Hourly</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                </select>
+              </div>
+
+              <div style={rowStyle}>
+                <label style={labelStyle}>Backup Retention Policy (Keep last N backups)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={backupRetention}
+                  onChange={(e) => setBackupRetention(Number(e.target.value))}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={rowStyle}>
+                <label style={labelStyle}>Default Auto-Backup Contents</label>
+                <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.25rem" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={backupIncludeWorld}
+                      onChange={(e) => setBackupIncludeWorld(e.target.checked)}
+                    />
+                    World
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={backupIncludePlugins}
+                      onChange={(e) => setBackupIncludePlugins(e.target.checked)}
+                    />
+                    Plugins / Mods
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={backupIncludeConfigs}
+                      onChange={(e) => setBackupIncludeConfigs(e.target.checked)}
+                    />
+                    Configs
+                  </label>
+                </div>
               </div>
             </div>
 

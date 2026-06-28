@@ -38,6 +38,11 @@ declare global {
             backupPath: string;
             playitEnabled: boolean;
             jvmArgs: string;
+            backupSchedule?: string;
+            backupRetention?: number;
+            backupIncludeWorld?: boolean;
+            backupIncludePlugins?: boolean;
+            backupIncludeConfigs?: boolean;
           }): Promise<void>;
           GetPlayitStatus(id: string): Promise<{
             playitEnabled: boolean;
@@ -80,6 +85,7 @@ declare global {
           // Backups
           ListBackups(id: string): Promise<BackupItem[]>;
           CreateBackup(id: string): Promise<BackupItem>;
+          CreateBackupWithOptions(id: string, includeWorld: boolean, includePlugins: boolean, includeConfigs: boolean): Promise<BackupItem>;
           RestoreBackup(id: string, backupName: string): Promise<void>;
           DeleteBackup(id: string, backupName: string): Promise<void>;
           BrowseForBackupDir(): Promise<string>;
@@ -170,6 +176,11 @@ export async function updateServerConfig(payload: {
   backupPath: string;
   playitEnabled: boolean;
   jvmArgs: string;
+  backupSchedule?: string;
+  backupRetention?: number;
+  backupIncludeWorld?: boolean;
+  backupIncludePlugins?: boolean;
+  backupIncludeConfigs?: boolean;
 }): Promise<{ result: string }> {
   await window.go.main.App.UpdateServerConfig(payload);
   return { result: "updated" };
@@ -342,6 +353,10 @@ export async function listBackups(id: string): Promise<BackupItem[]> {
 
 export async function createBackup(id: string): Promise<BackupItem> {
   return window.go.main.App.CreateBackup(id);
+}
+
+export async function createBackupWithOptions(id: string, includeWorld: boolean, includePlugins: boolean, includeConfigs: boolean): Promise<BackupItem> {
+  return window.go.main.App.CreateBackupWithOptions(id, includeWorld, includePlugins, includeConfigs);
 }
 
 export async function restoreBackup(id: string, backupName: string): Promise<void> {

@@ -215,6 +215,12 @@ export namespace servermanager {
 	    playitAddress: string;
 	    jvmArgs: string;
 	    modpack?: ModpackMeta;
+	    backupSchedule: string;
+	    backupRetention: number;
+	    backupIncludeWorld: boolean;
+	    backupIncludePlugins: boolean;
+	    backupIncludeConfigs: boolean;
+	    lastBackup: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ServerInstance(source);
@@ -239,6 +245,12 @@ export namespace servermanager {
 	        this.playitAddress = source["playitAddress"];
 	        this.jvmArgs = source["jvmArgs"];
 	        this.modpack = this.convertValues(source["modpack"], ModpackMeta);
+	        this.backupSchedule = source["backupSchedule"];
+	        this.backupRetention = source["backupRetention"];
+	        this.backupIncludeWorld = source["backupIncludeWorld"];
+	        this.backupIncludePlugins = source["backupIncludePlugins"];
+	        this.backupIncludeConfigs = source["backupIncludeConfigs"];
+	        this.lastBackup = source["lastBackup"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

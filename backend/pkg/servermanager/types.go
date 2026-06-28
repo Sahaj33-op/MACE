@@ -26,10 +26,16 @@ type ServerInstance struct {
 	Port          int          `json:"port"`
 	Watchdog      bool         `json:"watchdog"`
 	BackupPath    string       `json:"backupPath"`
-	PlayitEnabled bool         `json:"playitEnabled"`
-	PlayitAddress string       `json:"playitAddress"`
-	JvmArgs       string       `json:"jvmArgs"`
-	Modpack       *ModpackMeta `json:"modpack,omitempty"`
+	PlayitEnabled        bool         `json:"playitEnabled"`
+	PlayitAddress        string       `json:"playitAddress"`
+	JvmArgs              string       `json:"jvmArgs"`
+	Modpack              *ModpackMeta `json:"modpack,omitempty"`
+	BackupSchedule       string       `json:"backupSchedule"`
+	BackupRetention      int          `json:"backupRetention"`
+	BackupIncludeWorld   bool         `json:"backupIncludeWorld"`
+	BackupIncludePlugins bool         `json:"backupIncludePlugins"`
+	BackupIncludeConfigs bool         `json:"backupIncludeConfigs"`
+	LastBackup           string       `json:"lastBackup"`
 }
 
 // ContentItem represents a single mod or plugin JAR inside a server directory.
@@ -88,8 +94,13 @@ type UpdateConfigPayload struct {
 	Version       string `json:"version"`
 	Type          string `json:"type"`
 	BackupPath    string `json:"backupPath"`
-	PlayitEnabled bool   `json:"playitEnabled"`
-	JvmArgs       string `json:"jvmArgs"`
+	PlayitEnabled        bool   `json:"playitEnabled"`
+	JvmArgs              string `json:"jvmArgs"`
+	BackupSchedule       string `json:"backupSchedule"`
+	BackupRetention      int    `json:"backupRetention"`
+	BackupIncludeWorld   bool   `json:"backupIncludeWorld"`
+	BackupIncludePlugins bool   `json:"backupIncludePlugins"`
+	BackupIncludeConfigs bool   `json:"backupIncludeConfigs"`
 }
 
 // BackupItem represents a single backup archive.

@@ -483,6 +483,11 @@ func UpdateServerConfig(payload UpdateConfigPayload) error {
 	inst.BackupPath = payload.BackupPath
 	inst.PlayitEnabled = payload.PlayitEnabled
 	inst.JvmArgs = payload.JvmArgs
+	inst.BackupSchedule = payload.BackupSchedule
+	inst.BackupRetention = payload.BackupRetention
+	inst.BackupIncludeWorld = payload.BackupIncludeWorld
+	inst.BackupIncludePlugins = payload.BackupIncludePlugins
+	inst.BackupIncludeConfigs = payload.BackupIncludeConfigs
 	if payload.Version != "" {
 		inst.Version = payload.Version
 	}
