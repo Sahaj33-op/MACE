@@ -251,17 +251,25 @@ export default function Console({ serverId, serverName }: ConsoleProps) {
       }}
     >
       {/* Terminal Header */}
-      <div
+      <button
+        type="button"
         onClick={toggleCollapsed}
+        aria-expanded={!isCollapsed}
+        aria-label={`${serverName} Terminal Toggle`}
         style={{
+          width: "100%",
           padding: "0.75rem 1.25rem",
           background: "var(--primary-color)",
+          border: "none",
           borderBottom: isCollapsed ? "none" : "3px solid var(--hr-top-color)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           cursor: "pointer",
           userSelect: "none",
+          color: "inherit",
+          fontFamily: "inherit",
+          fontSize: "inherit",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -275,7 +283,7 @@ export default function Console({ serverId, serverName }: ConsoleProps) {
             {wsStatus}
           </span>
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
         <>
